@@ -102,11 +102,6 @@ b
 (= nil (quote abc))
 ;=>false
 
-;;;;; Test quine
-;;; TODO: needs expect line length fix
-;;;((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
-;;;=>((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
-
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
@@ -167,19 +162,20 @@ b
 (concat [1 2])
 ;=>(1 2)
 
+;>>> soft=True
+
+;; Test quine
+((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+;=>((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+
 ;; Testing unquote with vectors
 (def! a 8)
 ;=>8
 `[1 a 3]
-;=>(1 a 3)
-;;; TODO: fix this
-;;;;=>[1 a 3]
+;=>[1 a 3]
 
 ;; Testing splice-unquote with vectors
 (def! c '(1 "b" "d"))
 ;=>(1 "b" "d")
 `[1 ~@c 3]
-;=>(1 1 "b" "d" 3)
-;;; TODO: fix this
-;;;;=>[1 1 "b" "d" 3]
-
+;=>[1 1 "b" "d" 3]
