@@ -54,6 +54,8 @@ b
 ;=>(1 2 (3 4))
 (quasiquote (nil))
 ;=>(nil)
+(quasiquote (f () g (h) i (j k) l))
+;=>(f () g (h) i (j k) l)
 
 ;; Testing unquote
 (quasiquote (unquote 7))
@@ -168,14 +170,58 @@ b
 ((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
 ;=>((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
 
-;; Testing unquote with vectors
+;; Testing quasiquote with vectors
+(quasiquote [])
+;=>[]
+(quasiquote [[]])
+;=>[[]]
+(quasiquote [()])
+;=>[()]
+(quasiquote ([]))
+;=>([])
 (def! a 8)
 ;=>8
 `[1 a 3]
 ;=>[1 a 3]
+(quasiquote [a [] a [a] a [a a] a])
+;=>[a [] a [a] a [a a] a]
+
+;; Testing unquote with vectors
+`[~a]
+;=>[8]
+`[(~a)]
+;=>[(8)]
+`([~a])
+;=>([8])
+`[a ~a a]
+;=>[a 8 a]
+`([a ~a a])
+;=>([a 8 a])
+`[(a ~a a)]
+;=>[(a 8 a)]
 
 ;; Testing splice-unquote with vectors
 (def! c '(1 "b" "d"))
 ;=>(1 "b" "d")
+`[~@c]
+;=>[1 "b" "d"]
+`[(~@c)]
+;=>[(1 "b" "d")]
+`([~@c])
+;=>([1 "b" "d"])
 `[1 ~@c 3]
 ;=>[1 1 "b" "d" 3]
+`([1 ~@c 3])
+;=>([1 1 "b" "d" 3])
+`[(1 ~@c 3)]
+;=>[(1 1 "b" "d" 3)]
+
+;; Misplaced unquote or splice-unquote
+`(0 unquote)
+;=>(0 unquote)
+`(0 splice-unquote)
+;=>(0 splice-unquote)
+`[unquote 0]
+;=>[unquote 0]
+`[splice-unquote 0]
+;=>[splice-unquote 0]
