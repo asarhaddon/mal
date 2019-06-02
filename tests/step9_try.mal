@@ -116,9 +116,6 @@
 
 (symbol "abc")
 ;=>abc
-;;;TODO: all implementations should suppport this too
-;;;(keyword :abc)
-;;;;=>:abc
 (keyword "abc")
 ;=>:abc
 
@@ -254,9 +251,6 @@
 ;=>{:bcd 234}
 (keyword? (nth (keys {:abc 123 :def 456}) 0))
 ;=>true
-;;; TODO: support : in strings in make impl
-;;;(keyword? (nth (keys {":abc" 123 ":def" 456}) 0))
-;;;;=>false
 (keyword? (nth (vals {"a" :abc "b" :def}) 0))
 ;=>true
 
@@ -374,3 +368,7 @@
 (= [] {})
 ;=>false
 
+(keyword :abc)
+;=>:abc
+(keyword? (first (keys {":abc" 123 ":def" 456})))
+;=>false
