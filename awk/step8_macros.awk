@@ -9,81 +9,85 @@ function READ(str)
 	return reader_read_str(str)
 }
 
-function is_pair(ast)
+# Return 0, an error or the unquote argument (second element of ast).
+function starts_with(ast, sym,    idx, len)
 {
-	return ast ~ /^[([]/ && types_heap[substr(ast, 2)]["len"] != 0
+	if (ast !~ /^\(/)
+		return 0
+	idx = substr(ast, 2)
+	len = types_heap[idx]["len"]
+	if (!len || types_heap[idx][0] != sym)
+		return 0
+	if (len != 2)
+		return  "!\"'" sym "' expects 1 argument, not " (len - 1) "."
+	return types_heap[idx][1]
 }
 
-function quasiquote(ast,    i, len, new_idx, idx, lst_idx, first, first_idx, verb, ret)
+function quasiquote(ast, env,    ret, new_idx, new_len, ast_idx, ast_len, elt_i, elt, ret_len, j)
 {
-	if (!is_pair(ast)) {
-		new_idx = types_allocate()
-		types_heap[new_idx][0] = "'quote"
-		types_heap[new_idx][1] = ast
-		types_heap[new_idx]["len"] = 2
-		return "(" new_idx
-	}
-	idx = substr(ast, 2)
-	first = types_heap[idx][0]
-	if (first == "'unquote") {
-		if (types_heap[idx]["len"] != 2) {
-			len = types_heap[idx]["len"]
-			types_release(ast)
-			return "!\"Invalid argument length for 'unquote'. Expects exactly 1 argument, supplied " (len - 1) "."
-		}
-		types_addref(ret = types_heap[idx][1])
+	if (ast !~ /^[([]/) {
 		types_release(ast)
-		return ret
+		env_release(env)
+		return ast
 	}
 
-	first_idx = substr(first, 2)
-	if (is_pair(first) && types_heap[first_idx][0] == "'splice-unquote") {
-		if (types_heap[first_idx]["len"] != 2) {
-			len = types_heap[first_idx]["len"]
+	if (ret = starts_with(ast, "'unquote")) {
+		if (ret ~ /^!/) {
 			types_release(ast)
-			return "!\"Invalid argument length for 'splice-unquote'. Expects exactly 1 argument, supplied " (len - 1) "."
+			env_release(env)
+			return ret
 		}
-		types_addref(first = types_heap[first_idx][1])
-		verb = "'concat"
-	} else {
-		types_addref(first)
-		first = quasiquote(first)
-		if (first ~ /^!/) {
-			types_release(ast)
-			return first
-		}
-		verb = "'cons"
-	}
-	lst_idx = types_allocate()
-	len = types_heap[idx]["len"]
-	for (i = 1; i < len; ++i) {
-		types_addref(types_heap[lst_idx][i - 1] = types_heap[idx][i])
-	}
-	types_heap[lst_idx]["len"] = len - 1
-	types_release(ast)
-	ret = quasiquote("(" lst_idx)
-	if (ret ~ /^!/) {
-		types_release(first)
-		return ret
+		types_addref(ret)
+		types_release(ast)
+		return EVAL(ret, env)
 	}
 
 	new_idx = types_allocate()
-	types_heap[new_idx][0] = verb
-	types_heap[new_idx][1] = first
-	types_heap[new_idx][2] = ret
-	types_heap[new_idx]["len"] = 3
-	return "(" new_idx
+	new_len = 0
+	ast_idx = substr(ast, 2)
+	ast_len = types_heap[ast_idx]["len"]
+	for (elt_i = 0; elt_i < ast_len; ++elt_i) {
+		elt = types_heap[ast_idx][elt_i]
+		if (ret = starts_with(elt, "'splice-unquote")) {
+			if (ret ~ /^!/) break
+			types_addref(ret)
+			env_addref(env)
+			ret = EVAL(ret, env)
+			if (ret ~ /^!/) break
+			if (ret !~ /^\(/) {
+				ret = "!\"'splice-unquote' expects a list."
+				break
+			}
+			ret = substr(ret, 2)
+			ret_len = types_heap[ret]["len"]
+			for (j = 0; j < ret_len; ++j)
+				types_addref(types_heap[new_idx][new_len++] = types_heap[ret][j])
+		} else {
+			types_addref(elt)
+			env_addref(env)
+			ret = quasiquote(elt, env)
+			if (ret ~ /^!/) break
+			types_addref(types_heap[new_idx][new_len++] = ret)
+		}
+	}
+	types_release(ast)
+	env_release(env)
+	types_heap[new_idx]["len"] = new_len
+	if (ret ~ /^!/) {
+		types_release("(" new_idx)
+		return ret
+	}
+	return substr(ast, 1, 1) new_idx
 }
 
-function is_macro_call(ast, env,    sym, ret, f)
+function is_macro_call(ast, env,    idx, len, sym, f)
 {
-	if (!is_pair(ast)) {
-		return 0
-	}
-	sym = types_heap[substr(ast, 2)][0]
-	if (sym !~ /^'/) {
-		return 0
-	}
+	if (ast !~ /^\(/) return 0
+	idx = substr(ast, 2)
+	len = types_heap[idx]["len"]
+	if (len == 0) return 0
+	sym = types_heap[idx][0]
+	if (sym !~ /^'/) return 0
 	f = env_get(env, sym)
 	return f ~ /^\$/ && types_heap[substr(f, 2)]["is_macro"]
 }
@@ -401,12 +405,7 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
 			}
 			types_addref(body = types_heap[idx][1])
 			types_release(ast)
-			ast = quasiquote(body)
-			if (ast ~ /^!/) {
-				env_release(env)
-				return ast
-			}
-			continue
+			return quasiquote(body, env)
 		case "'defmacro!":
 			return EVAL_defmacro(ast, env)
 		case "'macroexpand":

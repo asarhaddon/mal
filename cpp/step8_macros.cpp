@@ -14,7 +14,7 @@ static void installFunctions(malEnvPtr env);
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[]);
 static String safeRep(const String& input, malEnvPtr env);
-static malValuePtr quasiquote(malValuePtr obj);
+static malValuePtr quasiquote(const malValuePtr ast, malEnvPtr env);
 static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
@@ -170,8 +170,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 
             if (special == "quasiquote") {
                 checkArgsIs("quasiquote", 1, argCount);
-                ast = quasiquote(list->item(1));
-                continue; // TCO
+                return quasiquote(list->item(1), env);
             }
 
             if (special == "quote") {
@@ -208,56 +207,50 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
     return handler->apply(argsBegin, argsEnd);
 }
 
-static bool isSymbol(malValuePtr obj, const String& text)
+//  Return arg when ast matches ('sym, arg), else NULL.
+static malValuePtr starts_with(const malValuePtr ast, const char* sym)
 {
-    const malSymbol* sym = DYNAMIC_CAST(malSymbol, obj);
-    return sym && (sym->value() == text);
+    const malList* list = DYNAMIC_CAST(malList, ast);
+    if (!list || list->isEmpty())
+        return NULL;
+    const malSymbol* symbol = DYNAMIC_CAST(malSymbol, list->item(0));
+    if (!symbol || symbol->value().compare(sym))
+        return NULL;
+    checkArgsIs(sym, 1, list->count() - 1);
+    return list->item(1);
 }
 
-static const malSequence* isPair(malValuePtr obj)
+static malValuePtr quasiquote(const malValuePtr ast, malEnvPtr env)
 {
-    const malSequence* list = DYNAMIC_CAST(malSequence, obj);
-    return list && !list->isEmpty() ? list : NULL;
-}
+    const malSequence* seq = DYNAMIC_CAST(malSequence, ast);
+    if (!seq)
+        return ast;
 
-static malValuePtr quasiquote(malValuePtr obj)
-{
-    const malSequence* seq = isPair(obj);
-    if (!seq) {
-        return mal::list(mal::symbol("quote"), obj);
-    }
+    const malValuePtr unquoted = starts_with(ast, "unquote");
+    if (unquoted)
+        return EVAL(unquoted, env);
 
-    if (isSymbol(seq->item(0), "unquote")) {
-        // (qq (uq form)) -> form
-        checkArgsIs("unquote", 1, seq->count() - 1);
-        return seq->item(1);
+    malValueVec* res = new malValueVec;
+    for (auto elt = seq->begin(); elt != seq->end(); ++elt) {
+        const malValuePtr spl_unq = starts_with(*elt, "splice-unquote");
+        if (spl_unq) {
+            const malList* lst = DYNAMIC_CAST(malList, EVAL(spl_unq, env));
+            for (auto subelt = lst->begin(); subelt != lst->end(); ++subelt)
+                res->push_back(*subelt);
+        } else
+            res->push_back(quasiquote(*elt, env));
     }
-
-    const malSequence* innerSeq = isPair(seq->item(0));
-    if (innerSeq && isSymbol(innerSeq->item(0), "splice-unquote")) {
-        checkArgsIs("splice-unquote", 1, innerSeq->count() - 1);
-        // (qq (sq '(a b c))) -> a b c
-        return mal::list(
-            mal::symbol("concat"),
-            innerSeq->item(1),
-            quasiquote(seq->rest())
-        );
-    }
-    else {
-        // (qq (a b c)) -> (list (qq a) (qq b) (qq c))
-        // (qq xs     ) -> (cons (qq (car xs)) (qq (cdr xs)))
-        return mal::list(
-            mal::symbol("cons"),
-            quasiquote(seq->first()),
-            quasiquote(seq->rest())
-        );
-    }
+    if (DYNAMIC_CAST(malList, ast))
+        return mal::list(res);
+    else
+        return mal::vector(res);
 }
 
 static const malLambda* isMacroApplication(malValuePtr obj, malEnvPtr env)
 {
-    if (const malSequence* seq = isPair(obj)) {
-        if (malSymbol* sym = DYNAMIC_CAST(malSymbol, seq->first())) {
+    const malList* seq = DYNAMIC_CAST(malList, obj);
+    if (seq && !seq->isEmpty()) {
+        if (malSymbol* sym = DYNAMIC_CAST(malSymbol, seq->item(0))) {
             if (malEnvPtr symEnv = env->find(sym->value())) {
                 malValuePtr value = sym->eval(symEnv);
                 if (malLambda* lambda = DYNAMIC_CAST(malLambda, value)) {

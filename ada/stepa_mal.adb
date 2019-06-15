@@ -164,88 +164,59 @@ procedure StepA_Mal is
 
    end Eval_Ast;
 
-
-   function Quasi_Quote_Processing (Param : Mal_Handle) return Mal_Handle is
-      Res, First_Elem, FE_0 : Mal_Handle;
-      L : List_Ptr;
-      D_Ptr, Ast_P : List_Class_Ptr;
+   function Starts_With (Ast : Mal_Handle; Symbol : String) return Boolean is
+      A0 : Mal_Handle;
    begin
+      if Deref (Ast).Sym_Type /= List
+        or else Deref_List_Class (Ast).Get_List_Type /= List_List
+        or else Deref_List (Ast).Is_Null
+      then
+         return False;
+      end if;
+      A0 := Deref_List (Ast).Car;
+      return Deref (A0).Sym_Type = Sym
+        and then Deref_Sym (A0).Get_Sym = Symbol;
+   end Starts_With;
 
+   function Quasiquote (Ast : Mal_Handle; Env : Envs.Env_Handle) return Mal_Handle is
+      Res, Rest, Elt : Mal_Handle;
+   begin
       if Debug then
-         Ada.Text_IO.Put_Line ("QuasiQt " & Deref (Param).To_String);
+         Ada.Text_IO.Put_Line ("QuasiQt " & Deref (Ast).To_String);
       end if;
 
-      -- Create a New List for the result...
-      Res := New_List_Mal_Type (List_List);
-      L := Deref_List (Res);
-
-      -- This is the equivalent of Is_Pair
-      if Deref (Param).Sym_Type /= List or else
-         Is_Null (Deref_List_Class (Param).all) then
-
-         -- return a new list containing: a symbol named "quote" and ast.
-         L.Append (New_Symbol_Mal_Type ("quote"));
-         L.Append (Param);
-         return Res;
-
+      if Deref (Ast).Sym_Type /= List
+        or else Deref_List_Class (Ast).Get_List_Type = Hashed_List
+      then
+         return Ast;
       end if;
 
-      -- Ast is a non-empty list at this point.
-
-      Ast_P := Deref_List_Class (Param);
-
-      First_Elem := Car (Ast_P.all);
-
-      -- if the first element of ast is a symbol named "unquote":
-      if Deref (First_Elem).Sym_Type = Sym and then
-         Deref_Sym (First_Elem).Get_Sym = "unquote" then
-
-         -- return the second element of ast.`
-         D_Ptr := Deref_List_Class (Cdr (Ast_P.all));
-         return Car (D_Ptr.all);
-
+      if Starts_With (Ast, "unquote") then
+         return Eval (Deref_List (Ast).Nth (1), Env);
       end if;
 
-      -- if the first element of first element of `ast` (`ast[0][0]`)
-      -- is a symbol named "splice-unquote"
-      if Deref (First_Elem).Sym_Type = List and then
-         not Is_Null (Deref_List_Class (First_Elem).all) then
+      Res := New_List_Mal_Type (Deref_List_Class (Ast).Get_List_Type);
 
-         D_Ptr := Deref_List_Class (First_Elem);
-         FE_0 := Car (D_Ptr.all);
+      --  Iterate on elements of Ast (nth is slow in this implementation).
+      Rest := Ast;
+      while not Deref_List_Class (Rest).Is_Null loop
+         Elt := Deref_List_Class (Rest).Car;
 
-         if Deref (FE_0).Sym_Type = Sym and then
-            Deref_Sym (FE_0).Get_Sym = "splice-unquote" then
-
-            -- return a new list containing: a symbol named "concat",
-            L.Append (New_Symbol_Mal_Type ("concat"));
-
-            -- the second element of first element of ast (ast[0][1]),
-            D_Ptr := Deref_List_Class (Cdr (D_Ptr.all));
-            L.Append (Car (D_Ptr.all));
-
-            -- and the result of calling quasiquote with
-            -- the second through last element of ast.
-            L.Append (Quasi_Quote_Processing (Cdr (Ast_P.all)));
-
-            return Res;
-
+         if Starts_With (Elt, "splice-unquote") then
+            --  Evaluate, then append all elements of the result.
+            Elt := Eval (Deref_List (Elt).Nth (1), Env);
+            while not Deref_List (Elt).Is_Null loop
+               Deref_List_Class (Res).Append (Deref_List (Elt).Car);
+               Elt := Deref_List (Elt).Cdr;
+            end loop;
+         else
+            Deref_List_Class (Res).Append (Quasiquote (Elt, Env));
          end if;
 
-      end if;
-
-      -- otherwise: return a new list containing: a symbol named "cons",
-      L.Append (New_Symbol_Mal_Type ("cons"));
-
-      -- the result of calling quasiquote on first element of ast (ast[0]),
-      L.Append (Quasi_Quote_Processing (Car (Ast_P.all)));
-
-      -- and result of calling quasiquote with the second through last element of ast.
-      L.Append (Quasi_Quote_Processing (Cdr (Ast_P.all)));
-
+         Rest := Deref_List_Class (Rest).Cdr;
+      end loop;
       return Res;
-
-   end Quasi_Quote_Processing;
+   end Quasiquote;
 
 
    function Catch_Processing
@@ -417,8 +388,7 @@ procedure StepA_Mal is
          elsif Deref (First_Param).Sym_Type = Sym and then
                Deref_Sym (First_Param).Get_Sym = "quasiquote" then
 
-            Param := Quasi_Quote_Processing (Car (Rest_List));
-            goto Tail_Call_Opt;
+            return Quasiquote (Car (Rest_List), Env);
 
          elsif Deref (First_Param).Sym_Type = Sym and then
                Deref_Sym (First_Param).Get_Sym = "try*" then

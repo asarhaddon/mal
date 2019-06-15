@@ -1,5 +1,5 @@
 module Core
-( ns )
+( ns, list, vector )
 where
 
 import System.IO (hFlush, stdout)

@@ -3,8 +3,8 @@ import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
 
-pair?(ast): return ... // true if non-empty sequence
-quasiquote(ast): return ... // quasiquote
+starts_with(ast, sym): return ..
+quasiquote(ast, env): return ...
 
 macro?(ast, env): return ... // true if macro call
 macroexpand(ast, env): return ... // recursive macro expansion
@@ -28,7 +28,7 @@ EVAL(ast,env):
       'def!:        return env.set(ast[1], EVAL(ast[2], env))
       'let*:        env = ...; ast = ast[2] // TCO
       'quote:       return ast[1]
-      'quasiquote:  ast = quasiquote(ast[1]) // TCO
+      'quasiquote:  return quasiquote(ast[1], env)
       'defmacro!:   return ... // like def!, but set macro property
       'macroexpand: return macroexpand(ast[1], env)
       'do:          ast = eval_ast(ast[1..-1], env)[-1] // TCO

@@ -10,23 +10,22 @@ def READ(str):
     return reader.read_str(str)
 
 # eval
-def is_pair(x):
-    return types._sequential_Q(x) and len(x) > 0
+def starts_with (ast, sym):
+    return types._list_Q (ast) and ast [0] == sym
 
-def quasiquote(ast):
-    if not is_pair(ast):
-        return types._list(types._symbol("quote"),
-                           ast)
-    elif ast[0] == 'unquote':
-        return ast[1]
-    elif is_pair(ast[0]) and ast[0][0] == 'splice-unquote':
-        return types._list(types._symbol("concat"),
-                           ast[0][1],
-                           quasiquote(ast[1:]))
+def quasiquote (ast, env):
+    if not types._sequential_Q (ast):
+        return ast
+    elif starts_with (ast, 'unquote'):
+        return EVAL (ast [1], env)
     else:
-        return types._list(types._symbol("cons"),
-                           quasiquote(ast[0]),
-                           quasiquote(ast[1:]))
+        result = ast.__class__ ()
+        for elt in ast:
+            if starts_with (elt, 'splice-unquote'):
+                result.extend (EVAL (elt [1], env))
+            else:
+                result.append (quasiquote (elt, env))
+        return result
 
 def is_macro_call(ast, env):
     return (types._list_Q(ast) and
@@ -84,8 +83,7 @@ def EVAL(ast, env):
         elif "quote" == a0:
             return ast[1]
         elif "quasiquote" == a0:
-            ast = quasiquote(ast[1]);
-            # Continue loop (TCO)
+            return quasiquote (ast [1], env)
         elif 'defmacro!' == a0:
             func = EVAL(ast[2], env)
             func._ismacro_ = True

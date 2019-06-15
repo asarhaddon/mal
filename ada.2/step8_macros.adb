@@ -33,6 +33,8 @@ procedure Step8_Macros is
    function Eval_Builtin (Args : in Types.T_Array) return Types.T;
    --  The built-in variant needs to see the Repl variable.
 
+   function Starts_With (Ast : in Types.T;
+                         Sym : in String) return Boolean with Inline;
    function Quasiquote (Ast : in Types.T;
                         Env : in Envs.Ptr) return Types.T;
    --  Mergeing quote and quasiquote into eval with a flag triggering
@@ -322,20 +324,17 @@ procedure Step8_Macros is
    function Quasiquote (Ast : in Types.T;
                         Env : in Envs.Ptr) return Types.T
    is
-
-      function Quasiquote_List (List : in Types.T_Array) return Types.T;
-      --  Handle vectors and lists not starting with unquote.
-
-      function Quasiquote_List (List : in Types.T_Array) return Types.T is
-         Vector : Vectors.Vector; --  buffer for concatenation
-         Tmp    : Types.T;
-      begin
-         for Elt of List loop
-            if Elt.Kind in Kind_List
-              and then 0 < Elt.Sequence.all.Length
-              and then Elt.Sequence.all.Data (1).Kind = Kind_Symbol
-              and then Elt.Sequence.all.Data (1).Str.all = "splice-unquote"
-            then
+      Vector : Vectors.Vector; --  buffer for concatenation
+      Tmp    : Types.T;
+   begin
+      if Ast.Kind not in Types.Kind_Sequence then
+         return Ast;
+      elsif Starts_With (Ast, "unquote") then
+         Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
+         return Eval (Ast.Sequence.all.Data (2), Env);
+      else
+         for Elt of Ast.Sequence.all.Data loop
+            if Starts_With (Elt, "splice-unquote") then
                Err.Check (Elt.Sequence.all.Length = 2,
                           "splice-unquote expects 1 parameter");
                Tmp := Eval (Elt.Sequence.all.Data (2), Env);
@@ -356,32 +355,17 @@ procedure Step8_Macros is
             for I in 1 .. Natural (Vector.Length) loop
                Sequence.all.Data (I) := Vector (I);
             end loop;
-            return (Kind_List, Sequence);
-         end;
-      end Quasiquote_List;
-
-   begin                                --  Quasiquote
-      case Ast.Kind is
-         when Kind_Vector =>
-            --  When the test is updated, replace Kind_List with Kind_Vector.
-            return Quasiquote_List (Ast.Sequence.all.Data);
-         when Kind_List =>
-            if 0 < Ast.Sequence.all.Length
-              and then Ast.Sequence.all.Data (1).Kind = Kind_Symbol
-              and then Ast.Sequence.all.Data (1).Str.all = "unquote"
-            then
-               Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
-               return Eval (Ast.Sequence.all.Data (2), Env);
+            if Ast.Kind = Kind_List then
+               return (Kind_List, Sequence);
             else
-               return Quasiquote_List (Ast.Sequence.all.Data);
+               return (Kind_Vector, Sequence);
             end if;
-         when others =>
-            return Ast;
-      end case;
+         end;
+      end if;
    exception
-      when Err.Error =>
-         Err.Add_Trace_Line ("quasiquote", Ast);
-         raise;
+   when Err.Error =>
+      Err.Add_Trace_Line ("quasiquote", Ast);
+      raise;
    end Quasiquote;
 
    function Read return Types.T_Array
@@ -393,6 +377,13 @@ procedure Step8_Macros is
          Print (Eval (Expression, Env));
       end loop;
    end Rep;
+
+   function Starts_With (Ast : in Types.T;
+                         Sym : in String) return Boolean
+   is (Ast.Kind = Kind_List
+         and then 0 < Ast.Sequence.all.Length
+         and then Ast.Sequence.all.Data (1).Kind = Kind_Symbol
+         and then Ast.Sequence.all.Data (1).Str.all = Sym);
 
    ----------------------------------------------------------------------
 

@@ -12,42 +12,37 @@ READ () {
 }
 
 # eval
-IS_PAIR () {
-    if _sequential? "${1}"; then
-        _count "${1}"
-        [[ "${r}" > 0 ]] && return 0
-    fi
-    return 1
+starts_with () {
+    _list? "$1" && _first "$1" && _symbol? "$r" && [ "${ANON[$r]}" = "$2" ]
 }
 
 QUASIQUOTE () {
-    if ! IS_PAIR "${1}"; then
-        _symbol quote
-        _list "${r}" "${1}"
-        return
-    else
-        _nth "${1}" 0; local a0="${r}"
-        if [[ "${ANON["${a0}"]}" == "unquote" ]]; then
-            _nth "${1}" 1
-            return
-        elif IS_PAIR "${a0}"; then
-            _nth "${a0}" 0; local a00="${r}"
-            if [[ "${ANON["${a00}"]}" == "splice-unquote" ]]; then
-                _symbol concat; local a="${r}"
-                _nth "${a0}" 1; local b="${r}"
-                _rest "${1}"
-                QUASIQUOTE "${r}"; local c="${r}"
-                _list "${a}" "${b}" "${c}"
-                return
-            fi
+    if starts_with "$1" unquote; then
+        _nth "$1" 1
+        EVAL "$r" "$2"
+    elif _sequential? "$1"; then
+        if _list? "$1"; then
+            _list
+        else
+            _vector
         fi
+        local new_seq="$r"
+        for elt in ${ANON[$1]}; do
+            if starts_with "$elt" splice-unquote; then
+                _nth "$elt" 1
+                EVAL "$r" "$2"
+                for elt in ${ANON[$r]}; do
+                    _conj! "$new_seq" "$elt"
+                done
+            else
+                QUASIQUOTE "$elt" "$2"
+                _conj! "$new_seq" "$r"
+            fi
+        done
+        r="$new_seq"
+    else
+        r="$1"
     fi
-    _symbol cons; local a="${r}"
-    QUASIQUOTE "${a0}"; local b="${r}"
-    _rest "${1}"
-    QUASIQUOTE "${r}"; local c="${r}"
-    _list "${a}" "${b}" "${c}"
-    return
 }
 
 IS_MACRO_CALL () {
@@ -149,10 +144,8 @@ EVAL () {
               r="${a1}"
               return ;;
         quasiquote)
-              QUASIQUOTE "${a1}"
-              ast="${r}"
-              # Continue loop
-              ;;
+              QUASIQUOTE "$a1" "$env"
+              return ;;
         defmacro!)
               EVAL "${a2}" "${env}"
               [[ "${__ERROR}" ]] && return 1

@@ -28,39 +28,59 @@ begin
 end;
 
 // eval
-function is_pair(x: TMal) : Boolean;
+
+function starts_with (Ast : TMal; Sym : String) : Boolean;
+var
+   Arr : TMalArray;
+   A0  : TMal;
 begin
-    is_pair := _sequential_Q(x) and (Length((x as TMalList).Val) > 0);
+   if Ast.ClassType <> TMalList then Exit (False);
+   Arr := (Ast as TMalList).Val;
+   if Length (Arr) = 0 then Exit (False);
+   A0 := Arr [0];
+   starts_with := (A0.ClassType = TMalSymbol) and ((A0 as TMalSymbol).Val = Sym);
 end;
 
-function quasiquote(Ast: TMal) : TMal;
+function quasiquote (Ast : TMal; Env : TEnv) : TMal;
 var
-    Arr, Arr0 : TMalArray;
-    A0, A00   : TMal;
+   Res, Evaluated           : TMalArray;
+   Arr_I, Evaluated_I, Next : longint;
+   Elt                      : TMal;
+   procedure append (New_Element : TMal);
+   begin
+      if Next = Length (Res) then
+         SetLength (Res, 2*Length (Res));
+      Res [Next] := New_Element;
+      inc (Next);
+   end;
 begin
-    if not is_pair(Ast) then
-        Exit(_list(TMalSymbol.Create('quote'), Ast))
-    else
-    begin
-        Arr := (Ast as TMalList).Val;
-        A0  := Arr[0];
-        if (A0 is TMalSymbol) and
-           ((A0 as TMalSymbol).Val = 'unquote') then
-            Exit(Arr[1])
-        else if is_pair(A0) then
-        begin
-            Arr0 := (Arr[0] as TMalList).Val;
-            A00 := Arr0[0];
-            if (A00 is TMalSymbol) and
-               ((A00 as TMalSymbol).Val = 'splice-unquote') then
-                Exit(_list(TMalSymbol.Create('concat'),
-                           Arr0[1],
-                           quasiquote((Ast as TMalList).Rest)));
-        end;
-        quasiquote := _list(TMalSymbol.Create('cons'),
-                            quasiquote(A0),
-                            quasiquote((Ast as TMalList).Rest));
-    end;
+   if not (Ast is TMalList) then
+      Exit (Ast);
+
+   if starts_with (Ast, 'unquote') then
+      Exit (EVAL ((Ast as TMalList).Val [1], Env));
+
+   setLength (Res, 10);
+   Next := 0;
+   for Arr_I := 0 to Length ((Ast as TMalList).Val) - 1 do
+   begin
+      Elt := (Ast as TMalList).Val [Arr_I];
+      if starts_with (Elt, 'splice-unquote') then
+      begin
+         Elt := (Elt as TMalList).Val [1];
+         Elt := EVAL (Elt, Env);
+         Evaluated := (Elt as TMalList).Val;
+         for Evaluated_I := 0 to Length (Evaluated) - 1 do
+            append (Evaluated [Evaluated_I]);
+      end
+      else
+         append (quasiquote (Elt, Env));
+   end;
+   setLength (Res, Next);
+   if Ast.ClassType = TMalList then
+      quasiquote := TMalList.Create (Res)
+   else
+      quasiquote := TMalVector.Create (Res);
 end;
 
 function is_macro_call(Ast: TMal; Env: TEnv): Boolean;
@@ -199,7 +219,7 @@ begin
     'quote':
         Exit(Arr[1]);
     'quasiquote':
-        Ast := quasiquote(Arr[1]);
+        Exit (quasiquote (Arr [1], Env));
     'defmacro!':
     begin
         Fn := EVAL(Arr[2], ENV) as TMalFunc;

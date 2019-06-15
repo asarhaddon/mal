@@ -20,44 +20,40 @@ architecture test of step8_macros is
     read_str(str, ast, err);
   end procedure mal_READ;
 
-  procedure is_pair(ast: inout mal_val_ptr; pair: out boolean) is
+  function starts_with(ast : in mal_val_ptr;
+                       sym : in string) return boolean is
   begin
-    pair := is_sequential_type(ast.val_type) and ast.seq_val'length > 0;
-  end procedure is_pair;
+    return ast.val_type = mal_list
+       and ast.seq_val.all'length > 0
+       and ast.seq_val.all (ast.seq_val.all'low).val_type = mal_symbol
+       and ast.seq_val.all (ast.seq_val.all'low).string_val.all = sym;
+  end starts_with;
 
-  procedure quasiquote(ast: inout mal_val_ptr; result: out mal_val_ptr) is
-    variable ast_pair, a0_pair: boolean;
+  procedure quasiquote(ast    : inout mal_val_ptr;
+                       env    : inout env_ptr;
+                       result :   out mal_val_ptr;
+                       err    :   out mal_val_ptr) is
     variable seq: mal_seq_ptr;
-    variable a0, rest: mal_val_ptr;
+    variable elt: mal_val_ptr;
   begin
-    is_pair(ast, ast_pair);
-    if not ast_pair then
-      seq := new mal_seq(0 to 1);
-      new_symbol("quote", seq(0));
-      seq(1) := ast;
-      new_seq_obj(mal_list, seq, result);
-      return;
-    end if;
-    a0 := ast.seq_val(0);
-    if a0.val_type = mal_symbol and a0.string_val.all = "unquote" then
-      result := ast.seq_val(1); 
+    if not is_sequential_type(ast.val_type) then
+      result := ast;
+    elsif starts_with(ast, "unquote") then
+      EVAL(ast.seq_val(ast.seq_val.all'low + 1), env, result, err);
     else
-      is_pair(a0, a0_pair);
-      if a0_pair and a0.seq_val(0).val_type = mal_symbol and a0.seq_val(0).string_val.all = "splice-unquote" then
-        seq := new mal_seq(0 to 2);
-        new_symbol("concat", seq(0));
-        seq(1) := a0.seq_val(1);
-        seq_drop_prefix(ast, 1, rest);
-        quasiquote(rest, seq(2));
-        new_seq_obj(mal_list, seq, result);
-      else
-        seq := new mal_seq(0 to 2);
-        new_symbol("cons", seq(0));
-        quasiquote(a0, seq(1));
-        seq_drop_prefix(ast, 1, rest);
-        quasiquote(rest, seq(2));
-        new_seq_obj(mal_list, seq, result);
-      end if;
+      seq := new mal_seq(0 to -1);
+      for i in ast.seq_val'reverse_range loop
+        if starts_with(ast.seq_val(i), "splice-unquoted") then
+          EVAL(ast.seq_val(i), env, elt, err);
+          if err /= null then return; end if;
+          seq := new mal_seq'(seq.all & elt.seq_val.all);
+        else
+          quasiquote(ast.seq_val(i), env, elt, err);
+          if err /= null then return; end if;
+          seq := new mal_seq'(seq.all & elt);
+        end if;
+      end loop;
+      new_seq_obj(ast.val_type, seq, result);
     end if;
   end procedure quasiquote;
 
@@ -252,8 +248,8 @@ architecture test of step8_macros is
           return;
 
         elsif a0.string_val.all = "quasiquote" then
-          quasiquote(ast.seq_val(1), ast);
-          next; -- TCO
+          quasiquote(ast.seq_val(1), env, result, err);
+          return;
 
         elsif a0.string_val.all = "defmacro!" then
           EVAL(ast.seq_val(2), env, val, sub_err);

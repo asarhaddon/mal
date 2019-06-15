@@ -6,23 +6,22 @@
 
 
 ;; eval
-(def! is-pair (fn* [x]
-  (if (sequential? x)
-    (not (empty? x)))))
+(def! starts_with (fn* [ast sym]
+  (if (list? ast)
+    (= (first ast) sym))))
 
-(def! QUASIQUOTE (fn* [ast]
-  (if (not (is-pair ast))
-    (list 'quote ast)
-    (let* [a0 (first ast)]
-      (cond
-       (= 'unquote a0)
-       (nth ast 1)
-
-       (if (is-pair a0) (= 'splice-unquote (first a0))) ; `if` means `and`
-       (list 'concat (nth a0 1) (QUASIQUOTE (rest ast)))
-
-       "else"
-       (list 'cons (QUASIQUOTE a0) (QUASIQUOTE (rest ast))))))))
+(def! QUASIQUOTE (fn* [ast env]
+  (if (sequential? ast)
+    (if (starts_with ast 'unquote)
+      (EVAL (nth ast 1) env)
+      (apply (if (list? ast) list vector)
+        (apply concat
+          (map (fn* [elt]
+                 (if (starts_with elt 'splice-unquote)
+                   (EVAL (nth elt 1) env)
+                   [(QUASIQUOTE elt env)]))
+               ast))))
+    ast)))
 
 (def! is-macro-call (fn* [ast env]
   (if (list? ast)
@@ -82,7 +81,7 @@
           (nth ast 1)
 
           (= 'quasiquote a0)
-          (EVAL (QUASIQUOTE (nth ast 1)) env)
+          (QUASIQUOTE (nth ast 1) env)
 
           (= 'defmacro! a0)
           (env-set env (nth ast 1) (_macro_wrap (EVAL (nth ast 2) env)))

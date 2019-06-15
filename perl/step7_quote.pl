@@ -20,26 +20,36 @@ sub READ {
 }
 
 # eval
-sub is_pair {
-    my ($x) = @_;
-    return _sequential_Q($x) && scalar(@{$x->{val}}) > 0;
+sub starts_with {
+    my ($ast, $sym) = @_;
+    _list_Q($ast) || return 0;
+    my $a0 = $ast->nth(0);
+    return _symbol_Q($a0) && ${$a0} eq $sym;
 }
 
 sub quasiquote {
-    my ($ast) = @_;
-    if (!is_pair($ast)) {
-        return List->new([Symbol->new("quote"), $ast]);
-    } elsif (_symbol_Q($ast->nth(0)) && ${$ast->nth(0)} eq 'unquote') {
-        return $ast->nth(1);
-    } elsif (is_pair($ast->nth(0)) && _symbol_Q($ast->nth(0)->nth(0)) &&
-             ${$ast->nth(0)->nth(0)} eq 'splice-unquote') {
-        return List->new([Symbol->new("concat"),
-                          $ast->nth(0)->nth(1),
-                          quasiquote($ast->rest())]);
+    my ($ast, $env) = @_;
+
+    if (!_sequential_Q($ast)) {
+        return $ast;
+    }
+
+    if (starts_with($ast, 'unquote')) {
+        return EVAL($ast->nth(1), $env);
+    }
+
+    my @res;
+    foreach my $elt (@{$ast->{val}}) {
+        if (starts_with($elt, 'splice-unquote')) {
+            push @res, @{EVAL($elt->nth(1), $env)->{val}};
+        } else {
+            push @res, quasiquote($elt, $env);
+        }
+    }
+    if (_list_Q($ast)) {
+        return List->new(\@res);
     } else {
-        return List->new([Symbol->new("cons"),
-                          quasiquote($ast->nth(0)),
-                          quasiquote($ast->rest())]);
+        return Vector->new(\@res);
     }
 }
 
@@ -101,8 +111,7 @@ sub EVAL {
             return $a1;
         }
         when (/^quasiquote$/) {
-            $ast = quasiquote($a1);
-            # Continue loop (TCO)
+            return quasiquote($a1, $env);
         }
         when (/^do$/) {
             eval_ast($ast->slice(1, $#{$ast->{val}}-1), $env);

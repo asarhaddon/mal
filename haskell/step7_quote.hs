@@ -3,6 +3,7 @@ import System.Environment (getArgs)
 import Control.Monad (mapM)
 import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
+import qualified Data.Foldable as Foldable
 import qualified Data.Map as Map
 import qualified Data.Traversable as DT
 
@@ -18,26 +19,23 @@ mal_read :: String -> IOThrows MalVal
 mal_read str = read_str str
 
 -- eval
-is_pair (MalList x _:xs) = True
-is_pair (MalVector x _:xs) = True
-is_pair _ = False
 
-quasiquote :: MalVal -> MalVal
-quasiquote ast =
-    case ast of
-         (MalList (MalSymbol "unquote" : a1 : []) _) -> a1
-         (MalList (MalList (MalSymbol "splice-unquote" : a01 : []) _ : rest) _) ->
-            MalList [(MalSymbol "concat"), a01, quasiquote (MalList rest Nil)] Nil
-         (MalVector (MalList (MalSymbol "splice-unquote" : a01 : []) _ : rest) _) ->
-            MalList [(MalSymbol "concat"), a01, quasiquote (MalVector rest Nil)] Nil
-         (MalList (a0 : rest) _) -> MalList [(MalSymbol "cons"),
-                                             quasiquote a0,
-                                             quasiquote (MalList rest Nil)] Nil
-         (MalVector (a0 : rest) _) -> MalList [(MalSymbol "cons"),
-                                               quasiquote a0,
-                                               quasiquote (MalVector rest Nil)] Nil
-         _ -> MalList [(MalSymbol "quote"), ast] Nil
+-- starts-with is replaced with pattern matching
 
+quasiquote :: MalVal -> Env -> IOThrows MalVal
+quasiquote ast env = case ast of
+  (MalList (MalSymbol "unquote" : x : []) _) -> eval x env
+  (MalList   x _) -> Core.list   =<< Foldable.foldrM f [] x
+  (MalVector x _) -> Core.vector =<< Foldable.foldrM f [] x
+  _               -> return ast
+  where
+  f :: MalVal -> [MalVal] -> IOThrows [MalVal]
+  f (MalList (MalSymbol "splice-unquote" : x : []) _) acc = do
+    evaled <- eval x env
+    case evaled of
+      (MalList h _) -> return (h ++ acc)
+      _             -> throwStr "invalid splice-unquote"
+  f x acc = (: acc) <$> quasiquote x env
 
 eval_ast :: MalVal -> Env -> IOThrows MalVal
 eval_ast sym@(MalSymbol _) env = env_get env sym
@@ -82,7 +80,7 @@ apply_ast ast@(MalList (MalSymbol "quote" : args) _) env = do
          _ -> throwStr "invalid quote"
 apply_ast ast@(MalList (MalSymbol "quasiquote" : args) _) env = do
     case args of
-         a1 : [] -> eval (quasiquote a1) env
+         a1 : [] -> quasiquote a1 env
          _ -> throwStr "invalid quasiquote"
 apply_ast ast@(MalList (MalSymbol "do" : args) _) env = do
     case args of

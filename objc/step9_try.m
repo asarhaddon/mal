@@ -14,34 +14,32 @@ NSObject *READ(NSString *str) {
 }
 
 // eval
-BOOL is_pair(NSObject *obj) {
-    return [obj isKindOfClass:[NSArray class]] &&
-           [(NSArray *)obj count] > 0;
+BOOL starts_with(NSObject *ast, NSString *sym) {
+    if (!list_Q(ast))
+        return 0;
+    NSArray *alst = (NSArray *)ast;
+    if (![alst count])
+        return 0;
+    id *a0 = alst[0];
+    return [a0 isKindOfClass:[MalSymbol class]] &&
+           [(NSString *)a0 isEqualTo:sym];
 }
 
-NSObject * quasiquote(NSObject *ast) {
-    if (!is_pair(ast)) {
-        return @[[MalSymbol stringWithString:@"quote"], ast];
-    } else {
-        NSArray * alst = (NSArray *)ast;
-        id a0 = alst[0];
-        if ([a0 isKindOfClass:[MalSymbol class]] &&
-            [(NSString *)a0 isEqualTo:@"unquote"]) {
-            return alst[1];
-        } else if (is_pair(a0)) {
-            id a0lst = (NSArray *)a0;
-            id a00 = a0lst[0];
-            if ([a00 isKindOfClass:[MalSymbol class]] &&
-                [(NSString *)a00 isEqualTo:@"splice-unquote"]) {
-                return @[[MalSymbol stringWithString:@"concat"],
-                         a0lst[1],
-                         quasiquote(_rest(alst))];
-            }
-        }
-        return @[[MalSymbol stringWithString:@"cons"],
-                 quasiquote(a0),
-                 quasiquote(_rest(alst))];
-    }
+NSObject * quasiquote(NSObject *ast, Env *env) {
+    if (!sequential_Q(ast))
+        return ast;
+
+    NSArray *alst = (NSArray *)ast;
+    if (starts_with(alst, @"unquote"))
+        return eval(alst[1], env);
+
+    NSMutableArray *res = [NSMutableArray array];
+    for (NSObject *elt in alst)
+        if (starts_with(elt, @"splice-unquote"))
+            [res addObjectsFromArray:eval(elt, env)];
+        else
+            [res addObjects:quasiquote(elt, env)];
+    return res;
 }
 
 BOOL is_macro_call(NSObject *ast, Env *env) {
@@ -124,7 +122,7 @@ NSObject *EVAL(NSObject *ast, Env *env) {
     } else if ([(NSString *)a0 isEqualTo:@"quote"]) {
         return alst[1];
     } else if ([(NSString *)a0 isEqualTo:@"quasiquote"]) {
-        ast = quasiquote(alst[1]); // TCO
+        return quasiquote(alst[1], env);
     } else if ([a0sym isEqualTo:@"defmacro!"]) {
         MalFunc * f = (MalFunc *)EVAL(alst[2], env);
         f.isMacro = true;

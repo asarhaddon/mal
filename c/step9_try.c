@@ -32,30 +32,32 @@ MalVal *READ(char prompt[], char *str) {
 }
 
 // eval
-int is_pair(MalVal *x) {
-    return _sequential_Q(x) && (_count(x) > 0);
+int starts_with(MalVal *ast, const char *sym) {
+    if (ast->type != MAL_LIST)
+        return 0;
+    MalVal *a0 = _first(ast);
+    return (a0->type & MAL_SYMBOL) && ! strcmp(sym, a0->val.string);
 }
 
-MalVal *quasiquote(MalVal *ast) {
-    if (!is_pair(ast)) {
-        return _listX(2, malval_new_symbol("quote"), ast);
-    } else {
-        MalVal *a0 = _nth(ast, 0);
-        if ((a0->type & MAL_SYMBOL) &&
-            strcmp("unquote", a0->val.string) == 0) {
-            return _nth(ast, 1);
-        } else if (is_pair(a0)) {
-            MalVal *a00 = _nth(a0, 0);
-            if ((a00->type & MAL_SYMBOL) &&
-                strcmp("splice-unquote", a00->val.string) == 0) {
-                return _listX(3, malval_new_symbol("concat"),
-                                 _nth(a0, 1),
-                                 quasiquote(_rest(ast)));
-            }
+MalVal *quasiquote(MalVal *ast, Env *env) {
+    if (!_sequential_Q(ast))
+        return ast;
+
+    if (starts_with(ast, "unquote"))
+        return EVAL(_nth(ast, 1), env);
+
+    GArray *result = g_array_new(TRUE, TRUE, sizeof(MalVal*));
+    int len = _count(ast);
+    for (int i=0; i<len; i++) {
+        MalVal *elt = g_array_index(ast->val.array, MalVal*, i);
+        if (starts_with(elt, "splice-unquote")) {
+            elt = EVAL(_nth(elt, 1), env);
+            assert_type(elt, MAL_LIST, "splice-unquote argument must be a list");
+            g_array_append_vals(result, elt->val.array->data, elt->val.array->len);
+        } else {
+            elt = quasiquote(elt, env);
+            g_array_append_val(result, elt);
         }
-        return _listX(3, malval_new_symbol("cons"),
-                         quasiquote(a0),
-                         quasiquote(_rest(ast)));
     }
 }
 
@@ -168,8 +170,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
                strcmp("quasiquote", a0->val.string) == 0) {
         //g_print("eval apply quasiquote\n");
         MalVal *a1 = _nth(ast, 1);
-        ast = quasiquote(a1);
-        // Continue loop
+        return quasiquote(a1, env);
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("defmacro!", a0->val.string) == 0) {
         //g_print("eval apply defmacro!\n");

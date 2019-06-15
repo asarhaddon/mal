@@ -2,18 +2,6 @@ module T = Types.Types
 
 let repl_env = Env.make (Some Core.ns)
 
-let rec quasiquote ast =
-  match ast with
-    | T.List   { T.value = [T.Symbol {T.value = "unquote"}; ast] } -> ast
-    | T.Vector { T.value = [T.Symbol {T.value = "unquote"}; ast] } -> ast
-    | T.List   { T.value = T.List { T.value = [T.Symbol {T.value = "splice-unquote"}; head]} :: tail }
-    | T.Vector { T.value = T.List { T.value = [T.Symbol {T.value = "splice-unquote"}; head]} :: tail } ->
-       Types.list [Types.symbol "concat"; head; quasiquote (Types.list tail)]
-    | T.List   { T.value = head :: tail }
-    | T.Vector { T.value = head :: tail } ->
-       Types.list [Types.symbol "cons"; quasiquote head; quasiquote (Types.list tail) ]
-    | ast -> Types.list [Types.symbol "quote"; ast]
-
 let is_macro_call ast env =
   match ast with
   | T.List { T.value = s :: args } ->
@@ -33,7 +21,21 @@ let rec macroexpand ast env =
        | _ -> ast
   else ast
 
-let rec eval_ast ast env =
+let rec quasiquote ast env =
+  (* starts_with is replaced with pattern matching *)
+  let qq_folder elt acc =
+    match elt with
+      | T.List { T.value = [(T.Symbol { T.value = "splice-unquote" }); x] } ->
+        (match eval x env with
+           | T.List { T.value = xs } -> List.append xs acc
+           | _ -> [])
+      | _ -> List.cons (quasiquote elt env) acc
+  in match ast with
+    | T.List { T.value = [(T.Symbol { T.value = "unquote" }); x] } -> eval x env
+    | T.List   { T.value = xs } -> T.List   { T.value = List.fold_right qq_folder xs []; T.meta = T.Nil }
+    | T.Vector { T.value = xs } -> T.Vector { T.value = List.fold_right qq_folder xs []; T.meta = T.Nil }
+    | _ -> ast
+and eval_ast ast env =
   match ast with
     | T.Symbol s -> Env.get env ast
     | T.List { T.value = xs; T.meta = meta }
@@ -95,8 +97,7 @@ and eval ast env =
               in bind_args arg_names args;
               eval expr sub_env)
     | T.List { T.value = [T.Symbol { T.value = "quote" }; ast] } -> ast
-    | T.List { T.value = [T.Symbol { T.value = "quasiquote" }; ast] } ->
-       eval (quasiquote ast) env
+    | T.List { T.value = [T.Symbol { T.value = "quasiquote" }; ast] } -> quasiquote ast env
     | T.List { T.value = [T.Symbol { T.value = "macroexpand" }; ast] } ->
        macroexpand ast env
     | T.List _ as ast ->

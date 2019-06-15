@@ -3,8 +3,8 @@ import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
 
-pair?(ast): return ... // true if non-empty sequence
-quasiquote(ast): return ... // quasiquote
+starts_with(ast, sym): return ..
+quasiquote(ast, env): return ...
 
 eval_ast(ast,env):
   switch type(ast):
@@ -21,7 +21,7 @@ EVAL(ast,env):
       'def!:        return env.set(ast[1], EVAL(ast[2], env))
       'let*:        env = ...; ast = ast[2] // TCO
       'quote:       return ast[1]
-      'quasiquote:  ast = quasiquote(ast[1]) // TCO
+      'quasiquote:  return quasiquote(ast[1], env)
       'do:          ast = eval_ast(ast[1..-1], env)[-1] // TCO
       'if:          EVAL(ast[1], env) ? ast = ast[2] : ast = ast[3] // TCO
       'fn*:         return new MalFunc(...)
