@@ -38,7 +38,7 @@
             [
                 exch
                 /data get
-                {
+                {               % iterate on ast
                     dup /splice-unquote starts_with {
                         1 _nth
                         env EVAL

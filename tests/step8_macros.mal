@@ -31,6 +31,9 @@
 ()
 ;=>()
 
+;; Test that macros do not break quasiquote
+`(1)
+;=>(1)
 
 ;>>> deferrable=True
 ;;
