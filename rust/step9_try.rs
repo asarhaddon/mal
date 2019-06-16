@@ -36,12 +36,12 @@ fn quasiquote(ast: &MalVal) -> MalVal {
     List(ref v,_) | Vector(ref v,_) if v.len() > 0 => {
       let a0 = &v[0];
       match a0 {
-        Sym(ref s) if s == "unquote" => v[1].clone(),
+        Sym(ref s) if v.len() == 2 && s == "unquote" => v[1].clone(),
         _ => {
           match a0 {
             List(ref v0,_) | Vector(ref v0,_) if v0.len() > 0 => {
               match v0[0] {
-                Sym(ref s) if s == "splice-unquote" => {
+                Sym(ref s) if v0.len() == 2 && s == "splice-unquote" => {
                   list![Sym("concat".to_string()),
                         v0[1].clone(),
                         quasiquote(&list!(v[1..].to_vec()))]
