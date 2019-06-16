@@ -15,12 +15,17 @@ architecture test of step9_try is
 
   shared variable repl_env: env_ptr;
 
+  -- Forward declaration
+  procedure EVAL(in_ast: inout mal_val_ptr; in_env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr);
+
+  procedure apply_func(fn: inout mal_val_ptr; args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr);
+
   procedure mal_READ(str: in string; ast: out mal_val_ptr; err: out mal_val_ptr) is
   begin
     read_str(str, ast, err);
   end procedure mal_READ;
 
-  function starts_with(ast : in mal_val_ptr;
+  function starts_with(ast : inout mal_val_ptr;
                        sym : in string) return boolean is
   begin
     return ast.val_type = mal_list
@@ -32,7 +37,7 @@ architecture test of step9_try is
   procedure quasiquote(ast    : inout mal_val_ptr;
                        env    : inout env_ptr;
                        result :   out mal_val_ptr;
-                       err    :   out mal_val_ptr) is
+                       err    : inout mal_val_ptr) is
     variable seq: mal_seq_ptr;
     variable elt: mal_val_ptr;
   begin
@@ -56,11 +61,6 @@ architecture test of step9_try is
       new_seq_obj(ast.val_type, seq, result);
     end if;
   end procedure quasiquote;
-
-  -- Forward declaration
-  procedure EVAL(in_ast: inout mal_val_ptr; in_env: inout env_ptr; result: out mal_val_ptr; err: out mal_val_ptr);
-
-  procedure apply_func(fn: inout mal_val_ptr; args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr);
 
   procedure is_macro_call(ast: inout mal_val_ptr; env: inout env_ptr; is_macro: out boolean) is
     variable f, env_err: mal_val_ptr;
