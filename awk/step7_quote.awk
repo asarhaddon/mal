@@ -23,23 +23,16 @@ function starts_with(ast, sym,    idx, len)
 	return types_heap[idx][1]
 }
 
-function quasiquote(ast, env,    ret, new_idx, new_len, ast_idx, ast_len, elt_i, elt, ret_len, j)
+function quasiquote(ast, env,    ret, new_idx, new_len, ast_idx, ast_len, elt_i, elt, ret_idx, ret_len, j)
 {
-	if (ast !~ /^[([]/) {
-		types_release(ast)
-		env_release(env)
+	if (ast !~ /^[([]/)
 		return ast
-	}
 
 	if (ret = starts_with(ast, "'unquote")) {
-		if (ret ~ /^!/) {
-			types_release(ast)
-			env_release(env)
-			return ret
-		}
-		types_addref(ret)
+		if (ret !~ /^!/)
+			ret = EVAL(types_addref(ret), env)
 		types_release(ast)
-		return EVAL(ret, env)
+		return ret
 	}
 
 	new_idx = types_allocate()
@@ -50,28 +43,25 @@ function quasiquote(ast, env,    ret, new_idx, new_len, ast_idx, ast_len, elt_i,
 		elt = types_heap[ast_idx][elt_i]
 		if (ret = starts_with(elt, "'splice-unquote")) {
 			if (ret ~ /^!/) break
-			types_addref(ret)
-			env_addref(env)
-			ret = EVAL(ret, env)
+			ret = EVAL(types_addref(ret), env)
 			if (ret ~ /^!/) break
 			if (ret !~ /^\(/) {
+				types_release(ret)
 				ret = "!\"'splice-unquote' expects a list."
 				break
 			}
-			ret = substr(ret, 2)
-			ret_len = types_heap[ret]["len"]
+			ret_idx = substr(ret, 2)
+			ret_len = types_heap[ret_idx]["len"]
 			for (j = 0; j < ret_len; ++j)
-				types_addref(types_heap[new_idx][new_len++] = types_heap[ret][j])
+				types_addref(types_heap[new_idx][new_len++] = types_heap[ret_idx][j])
+			types_release(ret);
 		} else {
-			types_addref(elt)
-			env_addref(env)
-			ret = quasiquote(elt, env)
+			ret = quasiquote(types_addref(elt), env)
 			if (ret ~ /^!/) break
-			types_addref(types_heap[new_idx][new_len++] = ret)
+			types_heap[new_idx][new_len++] = ret
 		}
 	}
 	types_release(ast)
-	env_release(env)
 	types_heap[new_idx]["len"] = new_len
 	if (ret ~ /^!/) {
 		types_release("(" new_idx)
@@ -329,7 +319,9 @@ function EVAL(ast, env,    body, new_ast, ret, idx, len, f, f_idx, ret_env)
 			}
 			types_addref(body = types_heap[idx][1])
 			types_release(ast)
-			return quasiquote(body, env)
+			ret = quasiquote(body, env)
+			env_release(env)
+			return ret
 		case "'do":
 			ast = EVAL_do(ast, env)
 			if (ast ~ /^!/) {
