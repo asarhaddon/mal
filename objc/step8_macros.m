@@ -20,25 +20,25 @@ BOOL starts_with(NSObject *ast, NSString *sym) {
     NSArray *alst = (NSArray *)ast;
     if (![alst count])
         return 0;
-    id *a0 = alst[0];
+    NSObject *a0 = alst[0];
     return [a0 isKindOfClass:[MalSymbol class]] &&
            [(NSString *)a0 isEqualTo:sym];
 }
 
-NSObject * quasiquote(NSObject *ast, Env *env) {
-    if (!sequential_Q(ast))
+NSObject *quasiquote(NSObject *ast, Env *env) {
+    if (![ast isKindOfClass:[NSArray class]])
         return ast;
 
     NSArray *alst = (NSArray *)ast;
     if (starts_with(alst, @"unquote"))
-        return eval(alst[1], env);
+        return EVAL(alst[1], env);
 
     NSMutableArray *res = [NSMutableArray array];
     for (NSObject *elt in alst)
         if (starts_with(elt, @"splice-unquote"))
-            [res addObjectsFromArray:eval(elt, env)];
+            [res addObjectsFromArray:EVAL(elt, env)];
         else
-            [res addObjects:quasiquote(elt, env)];
+            [res addObject:quasiquote(elt, env)];
     return res;
 }
 
