@@ -36,12 +36,12 @@ func quasiquote(ast MalType) MalType {
 	} else {
 		slc, _ := GetSlice(ast)
 		a0 := slc[0]
-		if Symbol_Q(a0) && (a0.(Symbol).Val == "unquote") {
+		if len(slc) == 2 && Symbol_Q(a0) && (a0.(Symbol).Val == "unquote") {
 			return slc[1]
 		} else if is_pair(a0) {
 			slc0, _ := GetSlice(a0)
 			a00 := slc0[0]
-			if Symbol_Q(a00) && (a00.(Symbol).Val == "splice-unquote") {
+			if len(slc0) == 2 && Symbol_Q(a00) && (a00.(Symbol).Val == "splice-unquote") {
 				return List{[]MalType{Symbol{"concat"},
 					slc0[1],
 					quasiquote(List{slc[1:], nil})}, nil}
