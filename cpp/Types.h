@@ -46,6 +46,7 @@ T* value_cast(malValuePtr obj, const char* typeName) {
     return dest;
 }
 
+//  FIXME: see note about quasiquote in steps 7 through A
 #define VALUE_CAST(Type, Value)    value_cast<Type>(Value, #Type)
 #define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value).ptr()))
 #define STATIC_CAST(Type, Value)   (static_cast<Type*>((Value).ptr()))

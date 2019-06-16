@@ -234,7 +234,10 @@ static malValuePtr quasiquote(const malValuePtr ast, malEnvPtr env)
     for (auto elt = seq->begin(); elt != seq->end(); ++elt) {
         const malValuePtr spl_unq = starts_with(*elt, "splice-unquote");
         if (spl_unq) {
-            const malList* lst = DYNAMIC_CAST(malList, EVAL(spl_unq, env));
+            //  FIXME: this causes a segfault in perf.mal:
+            // const malList* lst = DYNAMIC_CAST(malList, EVAL(spl_unq, env));
+            const malValuePtr evd = EVAL(spl_unq, env);
+            const malList* lst = DYNAMIC_CAST(malList, evd);
             for (auto subelt = lst->begin(); subelt != lst->end(); ++subelt)
                 res->push_back(*subelt);
         } else
