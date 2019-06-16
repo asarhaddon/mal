@@ -14,36 +14,41 @@ import reader;
 import printer;
 import types;
 
-bool is_pair(MalType ast)
+bool starts_with(MalType ast, MalSymbol sym)
 {
-    auto lst = cast(MalSequential) ast;
+    auto lst = cast(MalList) ast;
     if (lst is null) return false;
-    return lst.elements.length > 0;
+    auto lste = lst.elements;
+    return lste.length > 0 && lste[0] == sym;
 }
 
-MalType quasiquote(MalType ast)
+MalType quasiquote(MalType ast, Env env)
 {
-    if (!is_pair(ast))
-    {
-        return new MalList([sym_quote, ast]);
-    }
-    auto ast_seq = verify_cast!MalSequential(ast);
-    auto aste = ast_seq.elements;
-    if (aste[0] == sym_unquote)
-    {
-        return aste[1];
-    }
+    auto seq = cast(MalSequential) ast;
+    if (seq is null)
+        return ast;
 
-    if (is_pair(aste[0]))
-    {
-        auto ast0_seq = verify_cast!MalSequential(aste[0]);
-        if (ast0_seq.elements[0] == sym_splice_unquote)
+    if (starts_with(ast, sym_unquote))
+        return EVAL(seq.elements[1], env);
+
+    MalType[] res;
+    foreach (elt; seq.elements)
+        if (starts_with(elt, sym_splice_unquote))
         {
-            return new MalList([new MalSymbol("concat"), ast0_seq.elements[1], quasiquote(new MalList(aste[1..$]))]);
+            auto lst1 = cast(MalList) elt;
+            auto evd = EVAL(lst1.elements[1], env);
+            auto lst2 = verify_cast!MalList(evd);
+            res ~= lst2.elements;
         }
-    }
-
-    return new MalList([new MalSymbol("cons"), quasiquote(aste[0]), quasiquote(new MalList(aste[1..$]))]);
+        else
+        {
+            res.length++;
+            res[res.length - 1] = quasiquote(elt, env);
+        }
+    if (cast(MalList) ast)
+        return new MalList(res);
+    else
+        return new MalVector(res);
 }
 
 bool is_macro_call(MalType ast, Env env)
@@ -157,8 +162,7 @@ MalType EVAL(MalType ast, Env env)
                 return aste[1];
 
             case "quasiquote":
-                ast = quasiquote(aste[1]);
-                continue; // TCO
+                return quasiquote(aste[1], env);
 
             case "defmacro!":
                 auto a1 = verify_cast!MalSymbol(aste[1]);

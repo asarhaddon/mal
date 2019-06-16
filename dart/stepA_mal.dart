@@ -69,9 +69,10 @@ MalType quasiquote(MalType ast) {
     return new MalList([new MalSymbol("quote"), ast]);
   } else {
     var list = ast as MalIterable;
-    if (list.first == new MalSymbol("unquote")) {
+    if (list.length == 2 && list.first == new MalSymbol("unquote")) {
       return list[1];
     } else if (isPair(list.first) &&
+        (list.first as MalIterable).length == 2 &&
         (list.first as MalIterable).first == new MalSymbol("splice-unquote")) {
       return new MalList([
         new MalSymbol("concat"),
