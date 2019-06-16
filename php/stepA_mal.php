@@ -21,9 +21,12 @@ function is_pair($x) {
 function quasiquote($ast) {
     if (!is_pair($ast)) {
         return _list(_symbol("quote"), $ast);
-    } elseif (_symbol_Q($ast[0]) && $ast[0]->value === 'unquote') {
+    } elseif ($ast->count() == 2 &&
+              _symbol_Q($ast[0]) && $ast[0]->value === 'unquote') {
         return $ast[1];
-    } elseif (is_pair($ast[0]) && _symbol_Q($ast[0][0]) &&
+    } elseif (is_pair($ast[0]) &&
+              $ast[0]->count() == 2 &&
+              _symbol_Q($ast[0][0]) &&
               $ast[0][0]->value === 'splice-unquote') {
         return _list(_symbol("concat"), $ast[0][1],
                      quasiquote($ast->slice(1)));
