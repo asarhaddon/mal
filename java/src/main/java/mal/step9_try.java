@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import java.io.StringWriter;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -28,7 +29,7 @@ public class step9_try {
             || (ast instanceof MalVector)
             || ((MalList)ast).size() == 0)
             return false;
-        MalVal a0 = ast.nth(0);
+        MalVal a0 = ((MalList)ast).nth(0);
         return a0 instanceof MalSymbol
             && ((MalSymbol)a0).getName().equals(sym);
     }
