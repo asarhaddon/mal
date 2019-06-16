@@ -48,7 +48,8 @@ MalVal *quasiquote(MalVal *ast, Env *env) {
 
     GArray *result = g_array_new(TRUE, TRUE, sizeof(MalVal*));
     int len = _count(ast);
-    for (int i=0; i<len; i++) {
+    int i;
+    for (i=0; i<len; i++) {
         MalVal *elt = g_array_index(ast->val.array, MalVal*, i);
         if (starts_with(elt, "splice-unquote")) {
             elt = EVAL(_nth(elt, 1), env);
