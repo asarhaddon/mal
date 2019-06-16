@@ -22,11 +22,11 @@ def quasiquote(ast):
     else:
         a0 = ast[0]
         if isinstance(a0, MalSym):
-            if a0.value == u'unquote':
+            if len(ast) == 2 and a0.value == u'unquote':
                 return ast[1]
         if is_pair(a0) and isinstance(a0[0], MalSym):
             a00 = a0[0]
-            if (isinstance(a00, MalSym) and
+            if (len(a0) == 2 and isinstance(a00, MalSym) and
                 a00.value == u'splice-unquote'):
                 return _list(_symbol(u"concat"),
                              a0[1],
@@ -152,7 +152,7 @@ def EVAL(ast, env):
             if isinstance(f, MalFunc):
                 if f.ast:
                     ast = f.ast
-                    env = f.gen_env(el.rest()) # Continue loop (TCO) 
+                    env = f.gen_env(el.rest()) # Continue loop (TCO)
                 else:
                     return f.apply(el.rest())
             else:
