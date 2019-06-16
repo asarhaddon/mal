@@ -50,7 +50,7 @@ fun MalObject quasiquote(MalObject ast)
     Util.sequenceToMalObjectArray(ast) @=> MalObject a[];
     a[0] @=> MalObject a0;
 
-    if( a0.type == "symbol" && (a0$MalSymbol).value() == "unquote" )
+    if( a.size() == 2 && a0.type == "symbol" && (a0$MalSymbol).value() == "unquote" )
     {
         return a[1];
     }
@@ -60,7 +60,7 @@ fun MalObject quasiquote(MalObject ast)
         Util.sequenceToMalObjectArray(a0) @=> MalObject a0_[];
         a0_[0] @=> MalObject a0_0;
 
-        if( a0_0.type == "symbol" && (a0_0$MalSymbol).value() == "splice-unquote" )
+        if( a0_.size() == 2 && a0_0.type == "symbol" && (a0_0$MalSymbol).value() == "splice-unquote" )
         {
             return MalList.create(
                 [MalSymbol.create("concat"), a0_[1],
