@@ -8,9 +8,9 @@ proc is_pair(x: MalType): bool =
 proc quasiquote(ast: MalType): MalType =
   if not ast.is_pair:
     return list(symbol "quote", ast)
-  elif ast.list[0] == symbol "unquote":
+  elif ast.list.len == 2 and ast.list[0] == symbol "unquote":
     return ast.list[1]
-  elif ast.list[0].is_pair and ast.list[0].list[0] == symbol "splice-unquote":
+  elif ast.list[0].is_pair and ast.list[0].list.len == 2 and ast.list[0].list[0] == symbol "splice-unquote":
     return list(symbol "concat", ast.list[0].list[1],
       quasiquote(list ast.list[1 .. ^1]))
   else:
