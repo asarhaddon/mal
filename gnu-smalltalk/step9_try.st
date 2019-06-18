@@ -46,36 +46,30 @@ Object subclass: MAL [
         ^aClass new: items
     ]
 
-    MAL class >> quasiquote: ast [
-        | result a a0 a0_ a0_0 rest |
-        ast isPair ifFalse: [
-            result := {MALSymbol new: #quote. ast}.
-            ^MALList new: (OrderedCollection from: result)
-        ].
-
+    MAL class >> starts_with: ast sym: sym  [
+        | a a0 |
+        ast type = #list ifFalse: [ ^false. ].
         a := ast value.
+        a isEmpty ifTrue: [ ^false. ].
         a0 := a first.
+        ^a0 type = #symbol and: [ a0 value = sym ].
+    ]
 
-        (a0 type = #symbol and: [ a0 value = #unquote ]) ifTrue: [ ^a second ].
-
-        a0 isPair ifTrue: [
-            a0_ := a0 value.
-            a0_0 := a0_ first.
-
-            (a0_0 type = #symbol and:
-             [ a0_0 value = #'splice-unquote' ]) ifTrue: [
-                rest := MALList new: a allButFirst.
-                result := {MALSymbol new: #concat.
-                           a0_ second.
-                           self quasiquote: rest}.
-                ^MALList new: (OrderedCollection from: result)
-            ]
+    MAL class >> quasiquote: ast env: env [
+        | items |
+        (ast type = #list or: [ ast type = #vector ]) ifFalse: [
+            ^ast.
         ].
-
-        rest := MALList new: a allButFirst.
-        result := {MALSymbol new: #cons. self quasiquote: a0.
-                   self quasiquote: rest}.
-        ^MALList new: (OrderedCollection from: result)
+        (self starts_with: ast sym: #unquote) ifTrue: [
+            ^self EVAL: (ast value second) env: env.
+        ].
+        items := OrderedCollection new.
+        ast value do: [ :elt |
+            (self starts_with: elt sym: #'splice-unquote')
+                ifTrue: [ items addAll: ((self EVAL: (elt value second) env:env) value) ]
+                ifFalse: [ items add: (self quasiquote: elt env: env) ].
+        ].
+        ^ast class new: items.
     ]
 
     MAL class >> isMacroCall: ast env: env [
@@ -211,10 +205,7 @@ Object subclass: MAL [
                 ].
 
                 a0_ = #quasiquote ifTrue: [
-                    | result |
-                    a1 := ast second.
-                    sexp := self quasiquote: a1.
-                    continue value "TCO"
+                    ^self quasiquote: (ast second) env: env.
                 ].
 
                 a0_ = #'try*' ifTrue: [
