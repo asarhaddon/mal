@@ -60,6 +60,7 @@ MalVal *quasiquote(MalVal *ast, Env *env) {
             g_array_append_val(result, elt);
         }
     }
+    return malval_new_list(ast->type, result);
 }
 
 int is_macro_call(MalVal *ast, Env *env) {
