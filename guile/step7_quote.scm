@@ -44,6 +44,18 @@
     (EVAL (car ast) env)
     (eval_seq (cdr ast) env))))
 
+;; starts-with is replaced with pattern matching.
+(define (_quasiquote ast env)
+  (define (f elt)
+    (match elt
+      (('splice-unquote unqsp) (EVAL unqsp env))
+      (else                    (list (_quasiquote elt env)))))
+  (match ast
+    (('unquote unq) (EVAL unq env))
+    ( (_ ...)       (append-map f ast))
+    (#(xs ...)      (list->vector (append-map f (vector->list ast))))
+    (else           ast)))
+
 (define (EVAL ast env)
   (define (%unzip2 kvs)
     (let lp((next kvs) (k '()) (v '()))
@@ -53,23 +65,12 @@
        ((null? (cdr next))
         (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
-  ;; starts-with is replaced with pattern matching.
-  (define (_quasiquote obj)
-    (define (f elt)
-      (match elt
-        (('splice-unquote unqsp) (EVAL unqsp env))
-        (else                    (list (_quasiquote elt)))))
-    (match obj
-      (('unquote unq) (EVAL unq env))
-      ( (_ ...)       (append-map f obj))
-      (#(xs ...)      (list->vector (append-map f (vector->list obj))))
-      (else           obj)))
   (let tco-loop((ast ast) (env env))
     (match ast
       ((? non-list?) (eval_ast ast env))
       (() ast)
       (('quote obj) obj)
-      (('quasiquote obj) (_quasiquote obj))
+      (('quasiquote obj) (_quasiquote obj env))
       (('def! k v) ((env 'set) k (EVAL v env)))
       (('let* kvs body)
        (let* ((new-env (make-Env #:outer env))
