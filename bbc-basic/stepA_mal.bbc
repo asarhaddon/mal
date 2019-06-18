@@ -68,7 +68,7 @@ DEF FNqq_elts(seq%, env%)
   IF FNis_empty(seq%) THEN =seq%
   elt% = FNfirst(seq%)
   acc% = FNqq_elts(FNrest(seq%), env%)
-  IF starts_with(elt%, "splice-unquote") THEN
+  IF FNstarts_with(elt%, "splice-unquote") THEN
     =FNcore_concat(FNEVAL(FNnth(elt%, 1), env%), acc%)
   ELSE
     =FNalloc_pair(FNquasiquote(elt%, env%), acc%)
