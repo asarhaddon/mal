@@ -25,7 +25,7 @@ architecture test of step8_macros is
     read_str(str, ast, err);
   end procedure mal_READ;
 
-  function starts_with(ast : inout mal_val_ptr;
+  function starts_with(ast : in mal_val_ptr;
                        sym : in string) return boolean is
   begin
     return ast.val_type = mal_list
@@ -37,24 +37,25 @@ architecture test of step8_macros is
   procedure quasiquote(ast    : inout mal_val_ptr;
                        env    : inout env_ptr;
                        result :   out mal_val_ptr;
-                       err    : inout mal_val_ptr) is
+                       err    :   out mal_val_ptr) is
     variable seq: mal_seq_ptr;
-    variable elt: mal_val_ptr;
+    variable elt, sub_err: mal_val_ptr;
   begin
     if not is_sequential_type(ast.val_type) then
       result := ast;
     elsif starts_with(ast, "unquote") then
-      EVAL(ast.seq_val(ast.seq_val.all'low + 1), env, result, err);
+      EVAL(ast.seq_val(ast.seq_val.all'low + 1), env, result, sub_err);
+      if sub_err /= null then err := sub_err; return; end if;
     else
       seq := new mal_seq(0 to -1);
       for i in ast.seq_val'reverse_range loop
         if starts_with(ast.seq_val(i), "splice-unquoted") then
-          EVAL(ast.seq_val(i), env, elt, err);
-          if err /= null then return; end if;
+          EVAL(ast.seq_val(i), env, elt, sub_err);
+          if sub_err /= null then err := sub_err; return; end if;
           seq := new mal_seq'(seq.all & elt.seq_val.all);
         else
-          quasiquote(ast.seq_val(i), env, elt, err);
-          if err /= null then return; end if;
+          quasiquote(ast.seq_val(i), env, elt, sub_err);
+          if sub_err /= null then err := sub_err; return; end if;
           seq := new mal_seq'(seq.all & elt);
         end if;
       end loop;
@@ -248,7 +249,8 @@ architecture test of step8_macros is
           return;
 
         elsif a0.string_val.all = "quasiquote" then
-          quasiquote(ast.seq_val(1), env, result, err);
+          quasiquote(ast.seq_val(1), env, result, sub_err);
+          if sub_err /= null then err := sub_err; return; end if;
           return;
 
         elsif a0.string_val.all = "defmacro!" then
