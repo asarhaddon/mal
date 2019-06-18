@@ -79,6 +79,10 @@ b
 (quasiquote ((unquote 1) (unquote 2)))
 ;=>(1 2)
 
+;; Quasiquote and environments
+(let* (x 0) (quasiquote (unquote x)))
+;=>0
+
 ;; Testing splice-unquote
 (def! c (quote (1 "b" "d")))
 ;=>(1 "b" "d")
