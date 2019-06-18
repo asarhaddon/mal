@@ -36,7 +36,7 @@ NSObject *quasiquote(NSObject *ast, Env *env) {
     NSMutableArray *res = [NSMutableArray array];
     for (NSObject *elt in alst)
         if (starts_with(elt, @"splice-unquote"))
-            [res addObjectsFromArray:EVAL(elt, env)];
+            [res addObjectsFromArray:EVAL(((NSArray *)elt)[1], env)];
         else
             [res addObject:quasiquote(elt, env)];
     return res;
