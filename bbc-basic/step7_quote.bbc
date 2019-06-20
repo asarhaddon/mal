@@ -57,7 +57,8 @@ DEF FNstarts_with(ast%, sym$)
   LOCAL a0%
   IF NOT FNis_seq(ast%) THEN =FALSE
   a0% = FNfirst(ast%)
-  =FNis_symbol(a0%) AND FNunbox_symbol(a0%) = sym$
+  IF NOT FNis symbol(a0=) THEN =FALSE
+  =FNunbox_symbol(a0%) = sym$
 
 REM  Map quasiquote, except to splice-unquoted elements.
 DEF FNqq_elts(seq%, env%)
@@ -66,7 +67,7 @@ DEF FNqq_elts(seq%, env%)
   elt% = FNfirst(seq%)
   acc% = FNqq_elts(FNrest(seq%), env%)
   IF FNstarts_with(elt%, "splice-unquote") THEN
-    =FNcore_concat(FNEVAL(FNnth(elt%, 1), env%), acc%)
+    =FNcore_concat1(FNEVAL(FNnth(elt%, 1), env%), acc%)
   ELSE
     =FNalloc_pair(FNquasiquote(elt%, env%), acc%)
   ENDIF
