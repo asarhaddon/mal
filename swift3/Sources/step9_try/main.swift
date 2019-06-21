@@ -6,38 +6,35 @@ func READ(_ str: String) throws -> MalVal {
 }
 
 // eval
-func is_pair(_ ast: MalVal) -> Bool {
-    switch ast {
-    case MalVal.MalList(let lst, _):   return lst.count > 0
-    case MalVal.MalVector(let lst, _): return lst.count > 0
-    default:                           return false
-    }
-}
 
-func quasiquote(_ ast: MalVal) -> MalVal {
-    if !is_pair(ast) {
-        return list([MalVal.MalSymbol("quote"), ast])
-    }
-    let a0 = try! _nth(ast, 0)
-    switch a0 {
-    case MalVal.MalSymbol("unquote"):
-        return try! _nth(ast, 1)
-    default: break
-    }
-    if is_pair(a0) {
-        let a00 = try! _nth(a0, 0)
-        switch a00 {
-        case MalVal.MalSymbol("splice-unquote"):
-            return list([MalVal.MalSymbol("concat"),
-                        try! _nth(a0, 1),
-                        quasiquote(try! rest(ast))])
-        default: break
+// is_pair is replaced with pattern matching
+
+func quasiquote(_ ast: MalVal, _ env: Env) throws -> MalVal {
+    func map_quasiquote(_ lst: [MalVal]) throws -> [MalVal] {
+        var result = [MalVal]()
+        for elt in lst {
+            if case MalVal.MalList([MalVal.MalSymbol("splice-unquote"), let elt1], _) = elt {
+                if case MalVal.MalList(let sublst, _) =  EVAL(elt1, env) {
+                    result += sublst
+                } else {
+                    throw MalError.General(msg: "splice-unquote expects a list")
+                }
+            } else {
+                resut.append(quasiquote(elt, env))
+            }
         }
+        return result
     }
-
-    return list([MalVal.MalSymbol("cons"),
-                 quasiquote(a0),
-                 quasiquote(try! rest(ast))])
+    switch ast {
+    case MalVal.MalList([MalVal.MalSymbol("unquote"), let a1], _):
+        return EVAL(a1, env)
+    case MalVal.MalList(let lst, _):
+        return list(map_quasiquote(lst))
+    case MalVal.MalVector(let lst, _):
+        return vector(map_quasiquote(lst))
+    default:
+        return ast
+    }
 }
 
 func is_macro(_ ast: MalVal, _ env: Env) -> Bool {
@@ -130,7 +127,7 @@ func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
         case MalVal.MalSymbol("quote"):
             return lst[1]
         case MalVal.MalSymbol("quasiquote"):
-            ast = quasiquote(lst[1]) // TCO
+            return quasiquote(lst[1], env)
         case MalVal.MalSymbol("defmacro!"):
             var mac = try EVAL(lst[2], env)
             switch mac {

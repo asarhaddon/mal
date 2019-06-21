@@ -5,24 +5,43 @@ func READ(_ input: String) throws -> MalData {
     return try read_str(input)
 }
 
+func starts_with(_ ast: MalData, _ sym: String) -> MalData? {
+    if let list = ast as? [MalData],
+       2 == list.count,
+       let a0 = list[0] as? Symbol,
+       a0.name == sym {
+        return list[1]
+    } else {
+        return nil
+    }
+}
+
+func quasiquote(_ ast: MalData, _ env: Env) throws -> MalData {
+    var result: MalData
+    switch ast.dataType {
+    case .List:
+        if let x = starts_with(ast, "unquote") {
+            return try EVAL(x, env)
+        }
+        result = [MalData]()
+    case .Vector:
+        result = ContiguousArray<MalData>()
+    default:
+        return ast
+    }
+    for elt in ast.listForm {
+        if let x = starts_with(elt, "splice-unquote") {
+            let innerList = try EVAL(x, env) as! [MalData]
+            result.append(contentsOf: innerList)
+        } else {
+            result.append(try quasiquote(elt, env))
+val)
+        }
+    }
+    return result
+}
+
 func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
-    func is_pair(_ ast: MalData) -> Bool { // not used
-        return (ast is [MalData]) && (ast.count != 0)
-    }
-    func quasiquote(_ ast: MalData) -> MalData {
-        let list = ast.listForm
-        if list.isEmpty {
-            return [Symbol("quote"), ast]
-        }
-        if let sym = list[0] as? Symbol, sym.name == "unquote" {
-            return list[1]
-        }
-        let innerList = list[0].listForm
-        if !innerList.isEmpty, let sym = innerList[0] as? Symbol, sym.name == "splice-unquote" {
-            return [Symbol("concat"), innerList[1], quasiquote(list.dropFirst().listForm)]
-        }
-        return [Symbol("cons"), quasiquote(list[0]), quasiquote(list.dropFirst().listForm)]
-    }
     func macroexpand(_ anAst: MalData, env: Env) throws -> MalData {
         func isMacro_call(_ ast: MalData, env: Env) -> Bool { // not used
             if let list = ast as? [MalData],
@@ -95,8 +114,7 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                 case "quote":
                     return list[1]
                 case "quasiquote":
-                    ast = quasiquote(list[1])
-                    continue
+                    return try quasiquote(list[1], env)
                 case "macroexpand":
                     return try macroexpand(list[1], env: env)
                 default:
