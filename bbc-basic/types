@@ -421,6 +421,11 @@ DEF FNnth(val%, n%)
   IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
 =FNfirst(val%)
 
+REM  Concatenate 2 sequences
+DEF FNconcat2(prefix%, tail%)
+  IF FNis_empty(prefix%) THEN =tail%
+=FNalloc_pair(FNfirst(prefix%), FNconcat2(FNrest(prefix%), tail%))
+
 REM ** Core functions **
 
 REM  Z%(x,1) = index of function in FNcore_call

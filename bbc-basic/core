@@ -261,7 +261,7 @@ DEF FNcore_call(fn%, args%)
         ENDWHILE
         =args%(0)
       ELSE : REM args%(0) is a vector
-        =FNas_vector(FNcore_concat1(args%(0), args%))
+        =FNas_vector(FNconcat2(args%(0), args%))
       ENDIF
     DATA string?, 56
     WHEN 56
@@ -440,11 +440,7 @@ DEF FNcore_concat(args%)
   LOCAL tail%
   IF FNis_empty(args%) THEN =FNempty
   tail% = FNcore_concat(FNrest(args%))
-=FNcore_concat1(FNfirst(args%), tail%)
-  
-DEF FNcore_concat1(prefix%, tail%)
-  IF FNis_empty(prefix%) THEN =tail%
-=FNalloc_pair(FNfirst(prefix%), FNcore_concat1(FNrest(prefix%), tail%))
+=FNconcat2(FNfirst(args%), tail%)
 
 REM  Recursively assemble the argument list for 'apply'
 DEF FNcore_apply_args(args%)
