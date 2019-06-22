@@ -20,10 +20,10 @@ func quasiquote(ast)
   if (!is_pair(ast)) return MalList(val=&[&MalSymbol(val="quote"), &ast])
   lst = *ast.val
   ast1 = *lst(1)
-  if (numberof(*lst.val) == 2 && structof(ast1) == MalSymbol && ast1.val == "unquote") return *lst(2)
+  if (structof(ast1) == MalSymbol && ast1.val == "unquote" && 1 < numberof(lst)) return *lst(2)
   if (is_pair(ast1)) {
     ast11 = *((*ast1.val)(1))
-    if (numberof(*(ast1.val)) == 2 && structof(ast11) == MalSymbol && ast11.val == "splice-unquote") {
+    if (structof(ast11) == MalSymbol && ast11.val == "splice-unquote" && 1 < numberof(*ast1.val)) {
       return MalList(val=&[&MalSymbol(val="concat"), (*ast1.val)(2), &quasiquote(rest(ast))])
     }
   }
