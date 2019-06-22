@@ -10,7 +10,7 @@ let rec quasiquote ast env =
         (match eval x env with
            | T.List { T.value = xs } -> List.append xs acc
            | _ -> [])
-      | _ -> List.cons (quasiquote elt env) acc
+      | _ -> (quasiquote elt env) :: acc
   in match ast with
     | T.List { T.value = [(T.Symbol { T.value = "unquote" }); x] } -> eval x env
     | T.List   { T.value = xs } -> T.List   { T.value = List.fold_right qq_folder xs []; T.meta = T.Nil }
