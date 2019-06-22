@@ -60,7 +60,7 @@ DEF FNstarts_with(ast%, sym$)
   LOCAL a0%
   IF NOT FNis_seq(ast%) THEN =FALSE
   a0% = FNfirst(ast%)
-  IF NOT FNis symbol(a0=) THEN =FALSE
+  IF NOT FNis_symbol(a0%) THEN =FALSE
   =FNunbox_symbol(a0%) = sym$
 
 REM  Map quasiquote, except to splice-unquoted elements.
