@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
-step=$(dirname $0)/${STEP:-stepA_mal}.ck
+#!/bin/sh
+set -Ceu
+step=${STEP:-stepA_mal}.ck
 
 regex_chugin=${REGEX_CHUGIN:-/usr/local/lib/chuck/1.5.2.5/RegEx.chug}
 if [ ! -f "$regex_chugin" ]; then
@@ -7,7 +8,8 @@ if [ ! -f "$regex_chugin" ]; then
     exit 1
 fi
 
-imports=$(sed -n "s|^ *// *@import *|$(dirname $0)/|p" $step)
+# The globs will be expanded in the exec line.
+imports=$(sed -n "s|^ *// *@import *||p" $step)
 
 separator=$(printf '\a')
 for x; do

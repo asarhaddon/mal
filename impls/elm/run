@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec node $(dirname $0)/bootstrap.js ${STEP:-stepA_mal} "$@"
+#!/bin/sh
+set -Cefu
+exec node bootstrap.js ${STEP:-stepA_mal} "$@"

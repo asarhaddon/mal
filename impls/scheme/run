@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
-basedir=$(dirname $0)
+#!/bin/sh
+set -Cefu
 step=${STEP:-stepA_mal}
 
 case ${scheme_MODE:-chibi} in
-    chibi)       exec chibi-scheme -I$basedir $basedir/$step.scm      "$@" ;;
+    chibi)       exec chibi-scheme $step.scm                         "$@" ;;
     kawa)        if [ -e /usr/share/kawa/lib/kawa.jar ]; then
                      kawa=/usr/share/kawa/lib/kawa.jar
                   elif [ -e /usr/local/share/kawa/lib/kawa.jar ]; then
@@ -12,9 +12,9 @@ case ${scheme_MODE:-chibi} in
                      echo >&2 'Failed to find kawa.jar.'
                      exit 1
                  fi
-                 exec java -cp $kawa:$basedir/out $step               "$@" ;;
-    gauche)      exec gosh -I$basedir $basedir/$step.scm              "$@" ;;
-    chicken)     CHICKEN_REPOSITORY=$basedir/eggs exec $basedir/$step "$@" ;;
+                 exec java -cp $kawa:out $step                       "$@" ;;
+    gauche)      exec gosh -I. $step.scm                             "$@" ;;
+    chicken)     CHICKEN_REPOSITORY=eggs exec ./$step                "$@" ;;
     sagittarius) if command -v sash >/dev/null 2>&1; then
                      sagittarius=sash
                  elif command -v sagittarius >/dev/null 2>&1; then
@@ -23,8 +23,8 @@ case ${scheme_MODE:-chibi} in
                      echo >&2 'Failed to find sash or sagittarius.'
                      exit 1
                  fi
-                 exec $sagittarius -n -L$basedir $basedir/$step.scm   "$@" ;;
-    cyclone)     exec $basedir/$step                                  "$@" ;;
-    foment)      exec foment $basedir/$step.scm                       "$@" ;;
+                 exec $sagittarius -n -L. $step.scm                  "$@" ;;
+    cyclone)     exec ./$step                                        "$@" ;;
+    foment)      exec foment $step.scm                               "$@" ;;
     *) echo "Invalid scheme_MODE: $scheme_MODE"; exit 2 ;;
 esac

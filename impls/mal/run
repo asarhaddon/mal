@@ -1,12 +1,15 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -Cefu
 MAL_FILE=../mal/${STEP:-stepA_mal}.mal
 export STEP=stepA_mal # force MAL_IMPL to use stepA
 impl=${MAL_IMPL:-js}
 case $impl in
     *-mal)
-        exec ../${impl%-mal}/run ../mal/stepA_mal.mal $MAL_FILE "$@"
+        cd ../${impl%-mal}
+        exec ./run ../mal/stepA_mal.mal $MAL_FILE "$@"
         ;;
     *)
-        exec ../$impl/run $MAL_FILE "$@"
+        cd ../$impl
+        exec ./run $MAL_FILE "$@"
         ;;
 esac

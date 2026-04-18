@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec julia $(dirname $0)/${STEP:-stepA_mal}.jl "$@"
+#!/bin/sh
+set -Cefu
+exec julia ${STEP:-stepA_mal}.jl "$@"

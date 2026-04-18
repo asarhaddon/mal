@@ -2,7 +2,6 @@
 set -Cefu
 
 # LaTeX creates temporary files in the current directory.
-cd $(dirname $0)
 
 # There is no way to directly provide command line arguments to LaTeX,
 # use an intermediate file.

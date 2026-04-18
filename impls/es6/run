@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec node $(dirname $0)/${STEP:-stepA_mal}.mjs "$@"
+#!/bin/sh
+set -Cefu
+exec node ${STEP:-stepA_mal}.mjs "$@"

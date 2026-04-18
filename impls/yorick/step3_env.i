@@ -1,4 +1,3 @@
-set_path, get_env("YORICK_MAL_PATH") + ":" + get_path()
 require, "reader.i"
 require, "printer.i"
 require, "core.i"

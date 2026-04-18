@@ -1,4 +1,5 @@
 #!/bin/sh
+set -Cefu
 
 for x; do
     args="${args:+$args, }'$x'"

@@ -113,18 +113,31 @@ quux_STEP_TO_PROG = impls/quux/$($(1)).qx
   the "STEP" environment variable for the implementation step to run
   and defaults to "stepA_mal". Make sure the run script has the
   executable file permission set (or else the test runner might fail with a
-  permission denied error message). The following are examples of "run"
+  permission denied error message).
+
+  In order to disambiguate relative paths in command line arguments,
+  library search paths and so on, "run" will by convention always
+  executed in the implementation directory.
+
+```
+cd impls/quux
+./run ../tests/step0_repl.mal
+```
+
+  The following are examples of "run"
   scripts for a compiled language and an interpreted language (where
   the interpreter is named "quux"):
 
 ```
-#!/usr/bin/env bash
-exec $(dirname $0)/${STEP:-stepA_mal} "${@}"
+#!/bin/sh
+set -Cefu
+exec ./${STEP:-stepA_mal} "$@"
 ```
 
 ```
-#!/usr/bin/env bash
-exec quux $(dirname $0)/${STEP:-stepA_mal}.qx "${@}"
+#!/bin/sh
+set -Cefu
+exec quux ${STEP:-stepA_mal}.qx "$@"
 ```
 
 This allows you to run tests against your implementation like this:

@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -Cefu
 
 #
 # Usage: run_argv_test.sh <command line arguments to run mal>
@@ -21,7 +22,7 @@ if [ -z "$1" ] ; then
   exit 1
 fi
 
-root="$(dirname $0)"
+root=../tests
 
 out="$( $@ $root/print_argv.mal aaa bbb ccc | tr -d '\r' )"
 assert_equal '("aaa" "bbb" "ccc")' "$out"

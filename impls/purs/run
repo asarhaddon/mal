@@ -1,2 +1,7 @@
 #!/usr/bin/env bash
-exec node $(dirname $0)/${STEP:-stepA_mal}.js "$@"
+
+# #!/bin/sh
+# set -efu
+# breaks the self hosted test for step0 with an IO exception.
+
+exec node ${STEP:-stepA_mal}.js "$@"

@@ -1,3 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -Cefu
 exec "${BRANDY:-sbrandy}" -size 1024k \
-    -path ../bbc-basic -quit $(dirname $0)/${STEP:-stepA_mal}.bas "$@"
+    -quit ${STEP:-stepA_mal}.bas "$@"

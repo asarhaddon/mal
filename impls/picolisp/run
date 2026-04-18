@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec pil $(dirname $0)/${STEP:-stepA_mal}.l - "$@"
+#!/bin/sh
+set -Cefu
+exec pil ${STEP:-stepA_mal}.l - "$@"

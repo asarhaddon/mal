@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec hy $(dirname $0)/${STEP:-stepA_mal}.hy "$@"
+#!/bin/sh
+set -Cefu
+exec hy ${STEP:-stepA_mal}.hy "$@"

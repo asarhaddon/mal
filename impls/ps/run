@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec gs -q -I$(dirname $0) -dNOSAFER -dNODISPLAY -- $(dirname $0)/${STEP:-stepA_mal}.ps "$@"
+#!/bin/sh
+set -Cefu
+exec gs -q -I. -dNOSAFER -dNODISPLAY -- ${STEP:-stepA_mal}.ps "$@"

@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec mono $(dirname $0)/${STEP:-stepA_mal}.exe ${RAW:+--raw} "$@"
+#!/bin/sh
+set -Cefu
+exec mono ${STEP:-stepA_mal}.exe ${RAW:+--raw} "$@"

@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -Cefu
 export FAN_ENV=util::PathEnv
-export FAN_ENV_PATH="$(dirname $0)"
+export FAN_ENV_PATH=.
 exec fan ${STEP:-stepA_mal} "$@"

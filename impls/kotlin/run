@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec java -jar $(dirname $0)/${STEP:-stepA_mal}.jar "$@"
+#!/bin/sh
+set -Cefu
+exec java -jar ${STEP:-stepA_mal}.jar "$@"

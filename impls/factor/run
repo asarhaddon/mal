@@ -1,3 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -Cefu
 step=${STEP:-stepA_mal}
-exec factor $(dirname $0)/$step/$step.factor "$@"
+exec factor $step/$step.factor "$@"

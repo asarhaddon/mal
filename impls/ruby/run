@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec ruby $(dirname $0)/${STEP:-stepA_mal}.rb "$@"
+#!/bin/sh
+set -Cefu
+exec ruby ${STEP:-stepA_mal}.rb "$@"

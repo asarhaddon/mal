@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec racket $(dirname $0)/${STEP:-stepA_mal}.rkt "$@"
+#!/bin/sh
+set -Cefu
+exec racket ${STEP:-stepA_mal}.rkt "$@"

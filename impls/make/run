@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec make --no-print-directory -f $(dirname $0)/${STEP:-stepA_mal}.mk "$@"
+#!/bin/sh
+set -Cefu
+exec make --no-print-directory -f ${STEP:-stepA_mal}.mk "$@"

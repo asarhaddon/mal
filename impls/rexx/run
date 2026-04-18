@@ -1,2 +1,3 @@
 #!/bin/sh
-exec rexx -a $(dirname $0)/${STEP:-stepA_mal}.rexxpp "$@"
+set -Cefu
+exec rexx -a ${STEP:-stepA_mal}.rexxpp "$@"

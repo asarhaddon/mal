@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec dart --checked $(dirname $0)/${STEP:-stepA_mal}.dart "$@"
+#!/bin/sh
+set -Cefu
+exec dart --checked ${STEP:-stepA_mal}.dart "$@"

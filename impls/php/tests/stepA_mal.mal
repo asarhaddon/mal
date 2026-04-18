@@ -37,7 +37,7 @@
 ;; testing superglobal variable access
 
 (get php/_SERVER "PHP_SELF")
-;=>"../php/stepA_mal.php"
+;=>"stepA_mal.php"
 
 ;; testing PHP constants access
 

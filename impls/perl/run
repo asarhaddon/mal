@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec perl $(dirname $0)/${STEP:-stepA_mal}.pl ${RAW:+--raw} "$@"
+#!/bin/sh
+set -Cefu
+exec perl ${STEP:-stepA_mal}.pl ${RAW:+--raw} "$@"

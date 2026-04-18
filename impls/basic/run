@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-cd $(dirname $0)
+
+# #!/bin/sh
+# set -efu
+# lets the step0 test for qbasic times out.
+
 {
     printf '(def! -*ARGS*- (list'
     [ $# = 0 ] || printf ' "%s"' "$@"

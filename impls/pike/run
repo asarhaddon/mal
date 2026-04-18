@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec pike $(dirname $0)/${STEP:-stepA_mal}.pike "$@"
+#!/bin/sh
+set -Cefu
+exec pike ${STEP:-stepA_mal}.pike "$@"

@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec ucblogo $(dirname $0)/${STEP:-stepA_mal}.lg - "$@"
+#!/bin/sh
+set -Cefu
+exec ucblogo ${STEP:-stepA_mal}.lg - "$@"

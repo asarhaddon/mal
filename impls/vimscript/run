@@ -1,4 +1,5 @@
 #!/bin/sh
+set -Cefu
 
 # Run Vim in ex mode (-e) and run the given script ($1) on startup. Our scripts
 # end with 'qall!' which causes actual Vim UI to never start up.
@@ -7,10 +8,9 @@
 #
 # See: http://vim.wikia.com/wiki/Vim_as_a_system_interpreter_for_vimscript
 
-rundir=`dirname $0`
-export LD_LIBRARY_PATH=`readlink -f $rundir`
-vimscriptfile="$(dirname $0)/${STEP:-stepA_mal}.vim"
-if [ x$DEBUG = x ] ; then
+export LD_LIBRARY_PATH=.
+vimscriptfile=${STEP:-stepA_mal}.vim
+if [ -n "${DEBUG:-}" ] ; then
   exec 2> /dev/null
 fi
 exec vim -i NONE -V1 -nNesS $vimscriptfile -- "$@" | cat

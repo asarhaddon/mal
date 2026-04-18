@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec swipl $(dirname $0)/${STEP:-stepA_mal}.pl "$@"
+#!/bin/sh
+set -Cefu
+exec swipl ${STEP:-stepA_mal}.pl "$@"

@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-exec awk -f $(dirname $0)/${STEP:-stepA_mal}.awk "$@"
+#!/bin/sh
+set -Cefu
+exec awk -f ${STEP:-stepA_mal}.awk "$@"
