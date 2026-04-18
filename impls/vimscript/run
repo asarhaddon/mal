@@ -9,8 +9,7 @@
 
 rundir=`dirname $0`
 export LD_LIBRARY_PATH=`readlink -f $rundir`
-vimscriptfile="$1"
-shift
+vimscriptfile="$(dirname $0)/${STEP:-stepA_mal}.vim"
 if [ x$DEBUG = x ] ; then
   exec 2> /dev/null
 fi

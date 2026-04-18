@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+step=${STEP:-stepA_mal}.sql
 
 RL_HISTORY_FILE=${HOME}/.mal-history
 SKIP_INIT="${SKIP_INIT:-}"
@@ -25,8 +26,8 @@ cleanup () {
 trap "cleanup" TERM QUIT INT EXIT
 ${PSQL} -tc "SELECT 1 FROM pg_database WHERE datname = 'mal'" \
     | grep -q 1 || ${PSQL} -c "CREATE DATABASE mal"
-#[ "${SKIP_INIT}" ] || ${PSQL} -dmal -f $1 > /dev/null
-[ "${SKIP_INIT}" ] || ${PSQL} -dmal -f $1
+#[ "${SKIP_INIT}" ] || ${PSQL} -dmal -f $step > /dev/null
+[ "${SKIP_INIT}" ] || ${PSQL} -dmal -f $step
 
 ${PSQL} -dmal -c "SELECT io.open(0); SELECT io.open(1);" > /dev/null
 
@@ -59,7 +60,6 @@ ${PSQL} -dmal -c "SELECT io.close(0);" > /dev/null
 STDIN_PID=$!
 
 res=0
-shift
 if [ $# -gt 0 ]; then
     # If there are command line arguments then run a command and exit
     args=$(for a in "$@"; do echo -n "\"$a\" "; done)

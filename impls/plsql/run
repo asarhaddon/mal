@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+step=${STEP:-stepA_mal}.sql
 
 RL_HISTORY_FILE=${HOME}/.mal-history
 SKIP_INIT="${SKIP_INIT:-}"
@@ -17,7 +18,7 @@ trap "cleanup" TERM QUIT INT EXIT
 
 # Load the SQL code
 if [ -z "${SKIP_INIT}" ]; then
-    out=$(echo "" | ${SQLPLUS} @$1)
+    out=$(echo "" | ${SQLPLUS} @$step)
     if echo "${out}" | grep -vs "^No errors.$" \
         | grep -si error >/dev/null; then
     #if echo "${out}"  | grep -si error >/dev/null; then
@@ -104,7 +105,6 @@ done
 FILE_PID=$!
 
 res=0
-shift
 if [ $# -gt 0 ]; then
     # If there are command line arguments then run a command and exit
     args=$(for a in "$@"; do echo -n "\"$a\" "; done)

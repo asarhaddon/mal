@@ -5,11 +5,10 @@
 # vhdl_argv.tmp, and read the content of that file at the beginning of the VHDL
 # program.
 
-bin="$1"
-shift
+bin="$(dirname $0)/${STEP:-stepA_mal}"
 
 for arg in "$@" ; do
     echo "$arg"
 done > vhdl_argv.tmp
 
-$bin
+exec $bin
