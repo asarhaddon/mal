@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 READ () {
     read -u 0 -e -p "user> " r
 }

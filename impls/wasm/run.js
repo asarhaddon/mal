@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // Copyright Joel Martin
 // License MIT
 
@@ -128,7 +126,7 @@ async function loadWebAssembly(filename, args) {
 
 async function main() {
   assert(process.argv.length >= 3,
-         'Usage: ./run.js prog.wasm [ARGS...]')
+         'Usage: node run.js prog.wasm [ARGS...]')
 
   const wasm = process.argv[2]
   const args = process.argv.slice(2)

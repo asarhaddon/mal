@@ -1,5 +1,3 @@
-#! /usr/bin/env crystal run
-
 require "readline"
 require "./reader"
 require "./printer"

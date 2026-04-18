@@ -14,5 +14,5 @@ wace_libc)
 wace_fooboot)
     echo >&2 "wace_fooboot mode not yet supported" ;;
 node|js|*)
-    exec ./run.js $(dirname $0)/${STEP:-stepA_mal}.wasm "${@}" ;;
+    exec node run.js $(dirname $0)/${STEP:-stepA_mal}.wasm "${@}" ;;
 esac

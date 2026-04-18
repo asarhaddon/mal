@@ -1,5 +1,3 @@
-#!/usr/bin/env lua
-
 local table = require('table')
 
 local readline = require('readline')

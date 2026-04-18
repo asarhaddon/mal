@@ -1,5 +1,3 @@
-#!/usr/bin/env hy
-
 (import [hy.models [HySymbol :as Sym]])
 (import sys traceback)
 (import [reader [read-str Blank]])

@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-
 use strict;
 use warnings FATAL => 'recursion';
 use File::Basename 'dirname';

@@ -1,5 +1,3 @@
-#!/usr/bin/env hy
-
 (import [hy.models [HyString :as Str HySymbol :as Sym]])
 (import sys traceback)
 (import [mal_types [MalException]])

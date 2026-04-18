@@ -1,5 +1,3 @@
-#!/usr/bin/env julia
-
 push!(LOAD_PATH, pwd(), "/usr/share/julia/base")
 import readline_mod
 

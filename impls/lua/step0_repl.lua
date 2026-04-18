@@ -1,5 +1,3 @@
-#!/usr/bin/env lua
-
 local readline = require('readline')
 
 function READ(str)

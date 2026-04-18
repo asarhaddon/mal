@@ -1,4 +1,3 @@
-#!/usr/bin/env racket
 #lang racket
 
 (require "readline.rkt" "types.rkt" "reader.rkt" "printer.rkt"

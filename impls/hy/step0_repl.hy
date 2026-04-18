@@ -1,5 +1,3 @@
-#!/usr/bin/env hy
-
 (defn READ [str]
   str)
 

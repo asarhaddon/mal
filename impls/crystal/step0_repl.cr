@@ -1,5 +1,3 @@
-#! /usr/bin/env crystal run
-
 require "readline"
 
 # Note:

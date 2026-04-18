@@ -1,5 +1,3 @@
-#!/usr/bin/env hy
-
 (import sys traceback)
 (import [reader [read-str Blank]])
 (import [printer [pr-str]])
