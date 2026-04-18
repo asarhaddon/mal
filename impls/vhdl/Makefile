@@ -32,4 +32,4 @@ $(BINS): %: %.o
 	if [ "$@" = "stepA_mal" ]; then mv stepa_mal $@; fi
 
 clean:
-	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) work-obj93.cf mal
+	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) work-obj93.cf mal vhdl_argv.tmp

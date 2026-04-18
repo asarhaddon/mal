@@ -5,12 +5,6 @@
 # vhdl_argv.tmp, and read the content of that file at the beginning of the VHDL
 # program.
 
-cleanup() {
-    trap - TERM QUIT INT EXIT
-    rm -f vhdl_argv.tmp
-}
-trap "cleanup" TERM QUIT INT EXIT
-
 bin="$1"
 shift
 
