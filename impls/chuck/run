@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
+step=$(dirname $0)/${STEP:-stepA_mal}.ck
+
 regex_chugin=${REGEX_CHUGIN:-/usr/local/lib/chuck/1.5.2.5/RegEx.chug}
-if [[ ! -f "$regex_chugin" ]]; then
-    echo "Set \$REGEX_CHUGIN to the absolute path of RegEx.chug"; exit 1
+if [ ! -f "$regex_chugin" ]; then
+    echo 'Set $REGEX_CHUGIN to the absolute path of RegEx.chug'
+    exit 1
 fi
 
-imports=$(grep "^ *// *@import" "$(dirname $0)/${STEP:-stepA_mal}.ck" | awk '{print $3}')
-imports=$(for i in ${imports}; do ls $(dirname $0)/${i}; done)
-old_IFS="${IFS}"; IFS=$'\a'; export CHUCK_ARGS="${*}"; IFS="${old_IFS}"
+imports=$(sed -n "s|^ *// *@import *|$(dirname $0)/|p" $step)
 
-exec chuck --caution-to-the-wind --silent --chugin:"$regex_chugin" ${imports} $(dirname $-1)/${STEP:-stepA_mal}.ck
+separator=$(printf '\a')
+for x; do
+    CHUCK_ARGS="${CHUCK_ARGS:+$CHUCK_ARGS$separator}$x"
+done
+export CHUCK_ARGS
+
+exec chuck --caution-to-the-wind --silent --chugin:"$regex_chugin" \
+     $imports $step

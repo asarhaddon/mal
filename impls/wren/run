@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec wren $(dirname $0)/${STEP:-stepA_mal}.wren "${@}"
+exec wren $(dirname $0)/${STEP:-stepA_mal}.wren "$@"

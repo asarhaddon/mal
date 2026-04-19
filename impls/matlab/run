@@ -1,21 +1,19 @@
 #!/bin/sh
 
-args=
 for x; do
-    args="$args${args:+, }'$x'"
+    args="${args:+$args, }'$x'"
 done
+prompt="${STEP:-stepA_mal}(${args:-});quit;"
 
-case "$matlab_MODE" in
+case ${matlab_MODE:-octave} in
     matlab)
-        options='-nodisplay -nosplash -nodesktop -nojvm -r'
+        exec matlab -nodisplay -nosplash -nodesktop -nojvm -r "$prompt"
         ;;
     octave)
-        options='-q --no-gui --no-history --eval'
+        exec octave -q --no-gui --no-history --eval "$prompt"
         ;;
     *)
         echo "Bad matlab_MODE: $matlab_MODE"
         exit 1
         ;;
 esac
-
-exec $matlab_MODE $options "${STEP:-stepA_mal}($args);quit;"

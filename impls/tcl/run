@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec tclsh $(dirname $0)/${STEP:-stepA_mal}.tcl ${RAW:+--raw} "${@}"
+exec tclsh $(dirname $0)/${STEP:-stepA_mal}.tcl ${RAW:+--raw} "$@"

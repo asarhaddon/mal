@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-export PATH=$PATH:$(dirname $0)/node_modules/.bin
+export PATH="$PATH:$(dirname $0)/node_modules/.bin"
 STEP=${STEP:-stepA_mal}
-if [ "${clojure_MODE}" = "cljs" ]; then
-  exec lumo -c $(dirname $0)/src -m mal.${STEP//_/-} "${@}"
-else
-  exec java -jar $(dirname $0)/target/${STEP}.jar "${@}"
-fi
+case ${clojure_MODE:-clj} in
+    cljs) exec lumo -c $(dirname $0)/src -m mal.${STEP//_/-} "$@" ;;
+    clj)  exec java -jar $(dirname $0)/target/$STEP.jar "$@" ;;
+esac
+echo "Invalid clojure_MODE: $clojure_MODE"
+exit 1

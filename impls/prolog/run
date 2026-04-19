@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec swipl $(dirname $0)/${STEP:-stepA_mal}.pl "${@}"
+exec swipl $(dirname $0)/${STEP:-stepA_mal}.pl "$@"

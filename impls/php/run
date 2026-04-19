@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec php $(dirname $0)/${STEP:-stepA_mal}.php "${@}"
+exec php $(dirname $0)/${STEP:-stepA_mal}.php "$@"

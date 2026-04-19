@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec hy $(dirname $0)/${STEP:-stepA_mal}.hy "${@}"
+exec hy $(dirname $0)/${STEP:-stepA_mal}.hy "$@"

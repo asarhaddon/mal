@@ -7,7 +7,7 @@
 
 bin="$(dirname $0)/${STEP:-stepA_mal}"
 
-for arg in "$@" ; do
+for arg; do
     echo "$arg"
 done > vhdl_argv.tmp
 

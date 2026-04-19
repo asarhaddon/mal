@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec gst -f $(dirname $0)/${STEP:-stepA_mal}.st "${@}"
+exec gst -f $(dirname $0)/${STEP:-stepA_mal}.st "$@"

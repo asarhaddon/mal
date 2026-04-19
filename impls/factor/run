@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-exec factor $(dirname $0)/${STEP:-stepA_mal}/${STEP:-stepA_mal}.factor "${@}"
+step=${STEP:-stepA_mal}
+exec factor $(dirname $0)/$step/$step.factor "$@"

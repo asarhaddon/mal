@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec groovy $(dirname $0)/${STEP:-stepA_mal}.groovy "${@}"
+exec groovy $(dirname $0)/${STEP:-stepA_mal}.groovy "$@"

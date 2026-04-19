@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec pike $(dirname $0)/${STEP:-stepA_mal}.pike "${@}"
+exec pike $(dirname $0)/${STEP:-stepA_mal}.pike "$@"

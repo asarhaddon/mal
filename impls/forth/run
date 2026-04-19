@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec gforth $(dirname $0)/${STEP:-stepA_mal}.fs "${@}"
+exec gforth $(dirname $0)/${STEP:-stepA_mal}.fs "$@"
