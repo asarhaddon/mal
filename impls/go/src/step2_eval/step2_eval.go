@@ -19,33 +19,33 @@ func READ(str string) (MalType, error) {
 }
 
 // eval
-func eval_ast(ast MalType, env map[string]MalType) (MalType, error) {
-	//fmt.Printf("eval_ast: %#v\n", ast)
+func map_eval(xs []MalType, env map[string]MalType) ([]MalType, error) {
+	lst := []MalType{}
+	for _, a := range xs {
+		exp, e := EVAL(a, env)
+		if e != nil {
+			return nil, e
+		}
+		lst = append(lst, exp)
+	}
+	return lst, nil
+}
+
+func EVAL(ast MalType, env map[string]MalType) (MalType, error) {
+
+	// fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
+
 	if Symbol_Q(ast) {
-		k := ast.(Symbol).Val
-		exp, ok := env[k]
-		if !ok {
-			return nil, errors.New("'" + k + "' not found")
+		env_val, env_found := env[ast.(Symbol).Val]
+		if env_found {
+ 			return env_val, nil
+		} else {
+			return nil, errors.New("'" + ast.(Symbol).Val + "' not found")
 		}
-		return exp, nil
-	} else if List_Q(ast) {
-		lst := []MalType{}
-		for _, a := range ast.(List).Val {
-			exp, e := EVAL(a, env)
-			if e != nil {
-				return nil, e
-			}
-			lst = append(lst, exp)
-		}
-		return List{lst, nil}, nil
 	} else if Vector_Q(ast) {
-		lst := []MalType{}
-		for _, a := range ast.(Vector).Val {
-			exp, e := EVAL(a, env)
-			if e != nil {
-				return nil, e
-			}
-			lst = append(lst, exp)
+		lst, e := map_eval(ast.(Vector).Val, env)
+		if e != nil {
+			return nil, e
 		}
 		return Vector{lst, nil}, nil
 	} else if HashMap_Q(ast) {
@@ -59,33 +59,30 @@ func eval_ast(ast MalType, env map[string]MalType) (MalType, error) {
 			new_hm.Val[k] = kv
 		}
 		return new_hm, nil
+	} else if !List_Q(ast) {
+		return ast, nil
 	} else {
-		return ast, nil
-	}
-}
+		// apply list
+		if len(ast.(List).Val) == 0 {
+			return ast, nil
+		}
 
-func EVAL(ast MalType, env map[string]MalType) (MalType, error) {
-	//fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
-	switch ast.(type) {
-	case List: // continue
-	default:
-		return eval_ast(ast, env)
-	}
-
-	if len(ast.(List).Val) == 0 {
-		return ast, nil
-	}
-
-	// apply list
-	el, e := eval_ast(ast, env)
-	if e != nil {
-		return nil, e
-	}
-	f, ok := el.(List).Val[0].(func([]MalType) (MalType, error))
-	if !ok {
-		return nil, errors.New("attempt to call non-function")
-	}
-	return f(el.(List).Val[1:])
+		a0 := ast.(List).Val[0]
+			f, e := EVAL(a0, env)
+			if e != nil {
+				return nil, e
+			}
+			args := ast.(List).Val[1:]
+			args, e = map_eval(args, env)
+			if e != nil {
+				return nil, e
+			}
+				fn, ok := f.(func([]MalType) (MalType, error))
+				if !ok {
+					return nil, errors.New("attempt to call non-function")
+				}
+				return fn(args)
+		}
 }
 
 // print

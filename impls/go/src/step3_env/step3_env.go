@@ -20,28 +20,36 @@ func READ(str string) (MalType, error) {
 }
 
 // eval
-func eval_ast(ast MalType, env EnvType) (MalType, error) {
-	//fmt.Printf("eval_ast: %#v\n", ast)
-	if Symbol_Q(ast) {
-		return env.Get(ast.(Symbol))
-	} else if List_Q(ast) {
-		lst := []MalType{}
-		for _, a := range ast.(List).Val {
-			exp, e := EVAL(a, env)
-			if e != nil {
-				return nil, e
-			}
-			lst = append(lst, exp)
+func map_eval(xs []MalType, env EnvType) ([]MalType, error) {
+	lst := []MalType{}
+	for _, a := range xs {
+		exp, e := EVAL(a, env)
+		if e != nil {
+			return nil, e
 		}
-		return List{lst, nil}, nil
+		lst = append(lst, exp)
+	}
+	return lst, nil
+}
+
+func EVAL(ast MalType, env EnvType) (MalType, error) {
+
+	env_val, env_found := env.Get("DEBUG-EVAL")
+	if env_found && env_val != nil && env_val != false {
+		fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
+	}
+
+	if Symbol_Q(ast) {
+		env_val, env_found := env.Get(ast.(Symbol).Val)
+		if env_found {
+ 			return env_val, nil
+		} else {
+			return nil, errors.New("'" + ast.(Symbol).Val + "' not found")
+		}
 	} else if Vector_Q(ast) {
-		lst := []MalType{}
-		for _, a := range ast.(Vector).Val {
-			exp, e := EVAL(a, env)
-			if e != nil {
-				return nil, e
-			}
-			lst = append(lst, exp)
+		lst, e := map_eval(ast.(Vector).Val, env)
+		if e != nil {
+			return nil, e
 		}
 		return Vector{lst, nil}, nil
 	} else if HashMap_Q(ast) {
@@ -55,79 +63,75 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
 			new_hm.Val[k] = kv
 		}
 		return new_hm, nil
+	} else if !List_Q(ast) {
+		return ast, nil
 	} else {
-		return ast, nil
-	}
-}
-
-func EVAL(ast MalType, env EnvType) (MalType, error) {
-	//fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
-	switch ast.(type) {
-	case List: // continue
-	default:
-		return eval_ast(ast, env)
-	}
-
-	if len(ast.(List).Val) == 0 {
-		return ast, nil
-	}
-
-	// apply list
-	a0 := ast.(List).Val[0]
-	var a1 MalType = nil
-	var a2 MalType = nil
-	switch len(ast.(List).Val) {
-	case 1:
-		a1 = nil
-		a2 = nil
-	case 2:
-		a1 = ast.(List).Val[1]
-		a2 = nil
-	default:
-		a1 = ast.(List).Val[1]
-		a2 = ast.(List).Val[2]
-	}
-	a0sym := "__<*fn*>__"
-	if Symbol_Q(a0) {
-		a0sym = a0.(Symbol).Val
-	}
-	switch a0sym {
-	case "def!":
-		res, e := EVAL(a2, env)
-		if e != nil {
-			return nil, e
+		// apply list
+		if len(ast.(List).Val) == 0 {
+			return ast, nil
 		}
-		return env.Set(a1.(Symbol), res), nil
-	case "let*":
-		let_env, e := NewEnv(env, nil, nil)
-		if e != nil {
-			return nil, e
+
+		a0 := ast.(List).Val[0]
+		var a1 MalType = nil
+		var a2 MalType = nil
+		switch len(ast.(List).Val) {
+		case 1:
+			a1 = nil
+			a2 = nil
+		case 2:
+			a1 = ast.(List).Val[1]
+			a2 = nil
+		default:
+			a1 = ast.(List).Val[1]
+			a2 = ast.(List).Val[2]
 		}
-		arr1, e := GetSlice(a1)
-		if e != nil {
-			return nil, e
+		a0sym := "__<*fn*>__"
+		if Symbol_Q(a0) {
+			a0sym = a0.(Symbol).Val
 		}
-		for i := 0; i < len(arr1); i += 2 {
-			if !Symbol_Q(arr1[i]) {
-				return nil, errors.New("non-symbol bind value")
-			}
-			exp, e := EVAL(arr1[i+1], let_env)
+		switch a0sym {
+		case "def!":
+			res, e := EVAL(a2, env)
 			if e != nil {
 				return nil, e
 			}
-			let_env.Set(arr1[i].(Symbol), exp)
+			return env.Set(a1.(Symbol).Val, res), nil
+		case "let*":
+			let_env, e := NewEnv(env, nil, nil)
+			if e != nil {
+				return nil, e
+			}
+			arr1, e := GetSlice(a1)
+			if e != nil {
+				return nil, e
+			}
+			for i := 0; i < len(arr1); i += 2 {
+				if !Symbol_Q(arr1[i]) {
+					return nil, errors.New("non-symbol bind value")
+				}
+				exp, e := EVAL(arr1[i+1], let_env)
+				if e != nil {
+					return nil, e
+				}
+				let_env.Set(arr1[i].(Symbol).Val, exp)
+			}
+			return EVAL(a2, let_env)
+		default:
+			f, e := EVAL(a0, env)
+			if e != nil {
+				return nil, e
+			}
+			args := ast.(List).Val[1:]
+			args, e = map_eval(args, env)
+			if e != nil {
+				return nil, e
+			}
+				fn, ok := f.(func([]MalType) (MalType, error))
+				if !ok {
+					return nil, errors.New("attempt to call non-function")
+				}
+				return fn(args)
 		}
-		return EVAL(a2, let_env)
-	default:
-		el, e := eval_ast(ast, env)
-		if e != nil {
-			return nil, e
-		}
-		f, ok := el.(List).Val[0].(func([]MalType) (MalType, error))
-		if !ok {
-			return nil, errors.New("attempt to call non-function")
-		}
-		return f(el.(List).Val[1:])
 	}
 }
 
@@ -156,25 +160,25 @@ func rep(str string) (MalType, error) {
 }
 
 func main() {
-	repl_env.Set(Symbol{"+"}, func(a []MalType) (MalType, error) {
+	repl_env.Set("+", func(a []MalType) (MalType, error) {
 		if e := assertArgNum(a, 2); e != nil {
 			return nil, e
 		}
 		return a[0].(int) + a[1].(int), nil
 	})
-	repl_env.Set(Symbol{"-"}, func(a []MalType) (MalType, error) {
+	repl_env.Set("-", func(a []MalType) (MalType, error) {
 		if e := assertArgNum(a, 2); e != nil {
 			return nil, e
 		}
 		return a[0].(int) - a[1].(int), nil
 	})
-	repl_env.Set(Symbol{"*"}, func(a []MalType) (MalType, error) {
+	repl_env.Set("*", func(a []MalType) (MalType, error) {
 		if e := assertArgNum(a, 2); e != nil {
 			return nil, e
 		}
 		return a[0].(int) * a[1].(int), nil
 	})
-	repl_env.Set(Symbol{"/"}, func(a []MalType) (MalType, error) {
+	repl_env.Set("/", func(a []MalType) (MalType, error) {
 		if e := assertArgNum(a, 2); e != nil {
 			return nil, e
 		}

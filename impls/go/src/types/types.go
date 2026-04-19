@@ -21,9 +21,8 @@ type MalType interface {
 }
 
 type EnvType interface {
-	Find(key Symbol) EnvType
-	Set(key Symbol, value MalType) MalType
-	Get(key Symbol) (MalType, error)
+	Set(key string, value MalType) MalType
+	Get(key string) (MalType, bool)
 }
 
 // Scalars

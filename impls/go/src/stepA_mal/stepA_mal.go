@@ -81,10 +81,19 @@ func map_eval(xs []MalType, env EnvType) ([]MalType, error) {
 
 func EVAL(ast MalType, env EnvType) (MalType, error) {
 	for {
-	//fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
+
+	env_val, env_found := env.Get("DEBUG-EVAL")
+	if env_found && env_val != nil && env_val != false {
+		fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
+	}
 
 	if Symbol_Q(ast) {
-		return env.Get(ast.(Symbol))
+		env_val, env_found := env.Get(ast.(Symbol).Val)
+		if env_found {
+ 			return env_val, nil
+		} else {
+			return nil, errors.New("'" + ast.(Symbol).Val + "' not found")
+		}
 	} else if Vector_Q(ast) {
 		lst, e := map_eval(ast.(Vector).Val, env)
 		if e != nil {
@@ -134,7 +143,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 			if e != nil {
 				return nil, e
 			}
-			return env.Set(a1.(Symbol), res), nil
+			return env.Set(a1.(Symbol).Val, res), nil
 		case "let*":
 			let_env, e := NewEnv(env, nil, nil)
 			if e != nil {
@@ -152,7 +161,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 				if e != nil {
 					return nil, e
 				}
-				let_env.Set(arr1[i].(Symbol), exp)
+				let_env.Set(arr1[i].(Symbol).Val, exp)
 			}
 			ast = a2
 			env = let_env
@@ -166,7 +175,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 			if e != nil {
 				return nil, e
 			}
-			return env.Set(a1.(Symbol), fn), nil
+			return env.Set(a1.(Symbol).Val, fn), nil
 		case "try*":
 			var exc MalType
 			exp, e := EVAL(a1, env)
@@ -286,12 +295,11 @@ func rep(str string) (MalType, error) {
 func main() {
 	// core.go: defined using go
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType) (MalType, error)), nil})
+		repl_env.Set(k, Func{v.(func([]MalType) (MalType, error)), nil})
 	}
-	repl_env.Set(Symbol{"eval"}, Func{func(a []MalType) (MalType, error) {
+	repl_env.Set("eval", Func{func(a []MalType) (MalType, error) {
 		return EVAL(a[0], repl_env)
 	}, nil})
-	repl_env.Set(Symbol{"*ARGV*"}, List{})
 
 	// core.mal: defined using the language itself
 	rep("(def! *host-language* \"go\")")
@@ -305,13 +313,14 @@ func main() {
 		for _, a := range os.Args[2:] {
 			args = append(args, a)
 		}
-		repl_env.Set(Symbol{"*ARGV*"}, List{args, nil})
+		repl_env.Set("*ARGV*", List{args, nil})
 		if _, e := rep("(load-file \"" + os.Args[1] + "\")"); e != nil {
 			fmt.Printf("Error: %v\n", e)
 			os.Exit(1)
 		}
 		os.Exit(0)
 	}
+	repl_env.Set("*ARGV*", List{})
 
 	// repl loop
 	rep("(println (str \"Mal [\" *host-language* \"]\"))")
