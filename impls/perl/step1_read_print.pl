@@ -34,7 +34,7 @@ sub REP {
 }
 
 # Command line arguments
-if ( $ARGV[0] eq '--raw' ) {
+if ( @ARGV and  $ARGV[0] eq '--raw' ) {
     set_rl_mode('raw');
     shift @ARGV;
 }
