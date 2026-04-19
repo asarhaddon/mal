@@ -16,7 +16,7 @@ Step Notes:
             - add <lang>_STEP_TO_PROG entry
             - add <lang>_RUNSTEP entry
         - for a compiled language, add <lang>/Makefile
-            - targets: all, step*, stats, stats-lisp, 
+            - targets: all, step*, stats, stats-lisp,
 
 - use native eval in EVAL if available
 
@@ -79,7 +79,7 @@ Step Notes:
         - run `make test^EXT^step1`. Much of the basics should pass up
           to vectors
         - implement read_hash_map (can refactor read_list)
-        - import read_vector 
+        - import read_vector
             - probably want to define types for List and Vector in
               types.EXT that extend or wrap native arrays
         - run `make test^EXT^step1`. All mandatory should pass
@@ -319,22 +319,18 @@ Step Notes:
         - capability to store ismacro property in function
     - core module:
         - add first, rest, nth functions
-    - add is_macro_call and macroexpand
-        - recursively macroexpand lists
-        - if applying a macro function, run it on the ast first before
-          continuing
-    - call macroexpand apply in EVAL before apply
     - EVAL:
-        - add 'defmacro!' and 'macroexpand'
+        - add 'defmacro!'
         - set ismacro property on function
+        - apply macros and perform TCO.
     - Details:
         - cp step7_quote.EXT to step8_macros.EXT
         - if compiled update Makefile
         - add isMacro property to Mal Function type
             - may need to go back and adjust step5-7
-        - implement is_macro_call and macroexpand
-        - call macroexpand on ast before apply in EVAL
-        - add defmacro! and macroexpand to EVAL switch
+        - before apply in EVAL, if the function is a macro, apply it
+          to raw arguments and EVAL again (TCO).
+        - add defmacro! to EVAL switch
         - make test^go^step8 should pass some basic macros
         - add nth, first, and rest to core.ns
         - make test^go^step8 should now pass
@@ -345,7 +341,7 @@ Step Notes:
         - apply, map functions: should not directly call EVAL, which
           requires the function object to be runnable
         - readline
-        - nil?, true?, false? 
+        - nil?, true?, false?
     - EVAL:
         - try*/catch*: for normal exceptions, extracts string
           otherwise extracts full value
@@ -409,4 +405,3 @@ Step Notes:
     - convert returned data to mal data
         - recursive, similar to pr_str
     - Details:
-

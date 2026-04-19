@@ -101,8 +101,6 @@
 
 - "In the previous step, quoting enabled some simple manipulation [of]
   data structures"
-- The macroexpand function step refers to call/apply, it's unclear how
-  to proceed if you don't have such a thing
 - How should the exception for invalid `nth` access look like?  Also,
   why is it an exception and not an error like with the reader?
 - How can `first` take a list (or vector), but work on `nil`?

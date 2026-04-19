@@ -150,7 +150,7 @@ accepted into the main repository:
 
 * Your implementation should follow the existing mal steps and
   structure: Lisp-centric code (eval, eval_ast, quasiquote,
-  macroexpand) in the step files, other code in reader, printer, env,
+  macros) in the step files, other code in reader, printer, env,
   and core files. See [code layout rationale](#code_split) above.
   I encourage you to create implementations that take mal in new
   directions for your own learning and experimentation, but for it to
