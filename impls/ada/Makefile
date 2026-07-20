@@ -1,23 +1,16 @@
-PROGS=step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
-      step5_tco step6_file step7_quote step8_macros step9_try
+include ../../steps.mk
 
-all:	${PROGS} stepA_mal
+all: $(step0A)
 
 obj:
-	mkdir -p $@
+	mkdir obj
 
 # stepA_mal is awkward because GNAT requires the filename to be lowercase
-${PROGS} stepa_mal:	force obj
-	gnatmake -O3 -gnata $@.adb -D obj
-
-# so we make stepa_mal and just move it.
-stepA_mal:	stepa_mal
-	mv $< $@
+$(step0A): | obj
+	gnatmake -O3 -gnata $(subst A,a,$@).adb -D obj -o $@
+# Delegate the dependency handling to gnatmake.
+.PHONY: $(step0A)
 
 clean:
-	rm -f ${PROGS}
+	rm -f $(step0A)
 	rm -rf obj
-
-.PHONY: force
-
-force:

@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 #####################
 
 SOURCES_BASE = src/atom.erl src/printer.erl src/reader.erl
@@ -6,15 +8,9 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
 
-SRCS = step0_repl.erl step1_read_print.erl step2_eval.erl step3_env.erl step4_if_fn_do.erl \
-	step5_tco.erl step6_file.erl step7_quote.erl step8_macros.erl step9_try.erl stepA_mal.erl
-BINS = $(SRCS:%.erl=%)
-
-#####################
-
 .PHONY: all dist clean
 
-all: $(BINS)
+all: $(step0A)
 
 dist: mal
 
@@ -23,14 +19,9 @@ mal: $(SOURCES)
 	MAL_STEP=mal rebar compile escriptize
 	rm src/mal.erl
 
-
-define dep_template
-.PHONY: $(1)
-$(1): src/$(1).erl
-	MAL_STEP=$(1) rebar compile escriptize
-endef
-
-$(foreach b,$(BINS),$(eval $(call dep_template,$(b))))
+.PHONY: $(step0A)
+$(step0A): %: src/%.erl
+	MAL_STEP=$* rebar compile escriptize
 
 clean:
 	rebar clean

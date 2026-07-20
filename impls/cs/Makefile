@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 #####################
 
 DEBUG =
@@ -10,33 +12,29 @@ OTHER_SOURCES = getline.cs
 
 #####################
 
-SRCS = step0_repl.cs step1_read_print.cs step2_eval.cs step3_env.cs \
-       step4_if_fn_do.cs step5_tco.cs step6_file.cs step7_quote.cs \
-       step8_macros.cs step9_try.cs stepA_mal.cs
-
 LIB_SRCS = $(filter-out step%,$(OTHER_SOURCES) $(SOURCES))
 
 FLAGS = $(if $(strip $(DEBUG)),-debug+,)
 
 #####################
 
-all: $(patsubst %.cs,%.exe,$(SRCS))
+all: $(step0A:=.exe)
 
 dist: mal.exe mal
 
-mal.exe: $(patsubst %.cs,%.exe,$(word $(words $(SOURCES)),$(SOURCES)))
+mal.exe: $(stepA).exe
 	cp $< $@
 
 # NOTE/WARNING: static linking triggers mono libraries LGPL
 # distribution requirements.
 # http://www.mono-project.com/archived/guiderunning_mono_applications/
-mal: $(patsubst %.cs,%.exe,$(word $(words $(SOURCES)),$(SOURCES))) mal.dll
+mal: $(stepA).exe mal.dll
 	mkbundle --static -o $@ $+ --deps
 
 mal.dll: $(LIB_SRCS)
 	mcs $(FLAGS) -target:library $+ -out:$@
 
-%.exe: %.cs mal.dll
+$(step0A:=.exe): %.exe: %.cs mal.dll
 	mcs $(FLAGS) -r:mal.dll $<
 
 clean:

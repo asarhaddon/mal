@@ -1,10 +1,8 @@
+include ../../steps.mk
+
 SOURCES_BASE = readline.r types.r reader.r printer.r
 SOURCES_LISP = env.r core.r stepA_mal.r
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
-
-STEPS = step0_repl.r step1_read_print.r step2_eval.r step3_env.r \
-	step4_if_fn_do.r step5_tco.r step6_file.r \
-	step7_quote.r step8_macros.r step9_try.r stepA_mal.r
 
 all: libs
 
@@ -18,7 +16,7 @@ mal: mal.r
 	cat $< >> $@
 	chmod +x $@
 
-$(STEPS): libs
+$(step0A:=.r): libs
 
 .PHONY:
 libs: lib/rdyncall

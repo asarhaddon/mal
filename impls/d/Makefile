@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 d_MODE ?= gdc
 
 D ?= $(d_MODE)
@@ -21,34 +23,26 @@ endif
 
 #####################
 
-EARLY_SRCS = step0_repl.d step1_read_print.d step2_eval.d
-LATE_SRCS = step3_env.d step4_if_fn_do.d step5_tco.d step6_file.d \
-	    step7_quote.d step8_macros.d step9_try.d stepA_mal.d
-SRCS = $(EARLY_SRCS) $(LATE_SRCS)
-OBJS = $(SRCS:%.d=%.o)
-BINS = $(OBJS:%.o=%)
 EARLY_OBJS = types.o readline.o reader.o printer.o env.o
-OTHER_OBJS = $(EARLY_OBJS) mal_core.o
-EARLY_STEPS_BINS = $(EARLY_SRCS:%.d=%)
-LATE_STEPS_BINS = $(LATE_SRCS:%.d=%)
+deps3A := mal_core.o
 
 #####################
 
-all: $(BINS)
+all: $(step0A)
 
 dist: mal
 
-mal: $(word $(words $(BINS)),$(BINS))
+mal: $(stepA)
 	cp $< $@
 
-$(OBJS) $(OTHER_OBJS): %.o: %.d
-	$(D) $(CFLAGS) -c $(@:%.o=%.d) $(OF)
+$(step0A:=.o) $(EARLY_OBJS) $(deps3A): %.o: %.d
+	$(D) $(CFLAGS) -c $< $(OF)
 
-$(EARLY_STEPS_BINS): $(EARLY_OBJS)
-$(LATE_STEPS_BINS): $(OTHER_OBJS)
+$(step0A): $(EARLY_OBJS)
+$(step3A): $(deps3A)
 
-$(BINS): %: %.o
+$(step0A): %: %.o
 	$(D) $+ $(OF) $(LDFLAGS)
 
 clean:
-	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) mal
+	rm -f *.o $(step0A) mal

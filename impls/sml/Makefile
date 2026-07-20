@@ -1,4 +1,7 @@
-STEP_BINS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step6_file step7_quote step8_macros step9_try stepA_mal
+include ../../steps.mk
+
+# No TCO in this implementation.
+step5 :=
 
 sml_MODE_DEFAULT = polyml
 sml_MODE_CONFIG  = .smlmode
@@ -11,51 +14,42 @@ ifneq ($(sml_MODE),$(shell cat $(sml_MODE_CONFIG) 2> /dev/null))
 $(shell rm $(sml_MODE_CONFIG) 2> /dev/null)
 endif
 
-ifeq ($(sml_MODE),mlton)
-SMLC        = mlton
-SMLCOUTFLAG = -output
-BUILD_FILE  = %.mlb
-build_args  = $1
-endif
-ifeq ($(sml_MODE),mosml)
-SMLC        = mosmlc
-SMLCOUTFLAG = -o
-BUILD_FILE  = %.mlb
-build_args  = LargeInt.sml -toplevel $(shell grep "\\.sml" $1)
-endif
-ifeq ($(sml_MODE),polyml)
-SMLC        = polyc
-SMLCOUTFLAG = -o
-BUILD_FILE  = .%.poly.sml
-build_args  = $1
-endif
-
-all: $(STEP_BINS)
+all: $(step0A)
 
 dist: mal
 
 mal: stepA_mal
 	cp $< $@
 
-.%.dep: %.mlb
+$(step0A:%=.%.dep): .%.dep: %.mlb
 	@echo sml-deps -o $@ $<
-	$(eval DEPS := $(shell grep "\\.sml" $<))
+	$(eval DEPS := $(shell grep '[.]sml' $<))
 	@echo "$(@:.%.dep=%) $@: $(DEPS)" > $@
 
-include $(STEP_BINS:%=.%.dep)
+include $(step0A:%=.%.dep)
 
-.%.poly.sml: %.mlb
+$(step0A:%=.%.poly.sml): .%.poly.sml: %.mlb
 	@echo generate-sml -o $@ $<
-	@grep "\\.sml" $< | grep -v main | xargs printf "use \"%s\";\n" > $@
+	@grep '[.]sml' $< | grep -v main | xargs printf 'use "%s";\n' > $@
 
 # some hackery to let Make track changes in sml_MODE
 $(sml_MODE_CONFIG):
 	@echo $(sml_MODE) > $@
 
-$(STEP_BINS): %: $(BUILD_FILE) $(sml_MODE_CONFIG)
-	$(SMLC) $(SMLCOUTFLAG) $@ $(call build_args,$<)
+ifeq ($(sml_MODE),mlton)
+  $(step0A): %: %.mlb $(sml_MODE_CONFIG)
+	mlton -output $@ $<
+else ifeq ($(sml_MODE),mosml)
+  $(step0A): %: %.mlb $(sml_MODE_CONFIG)
+	mosmlc -o $@ LargeInt.sml -toplevel `grep '[.]sml' $<`
+else ifeq ($(sml_MODE),polyml)
+  $(step0A): %: .%.poly.sml $(sml_MODE_CONFIG)
+	polyc -o $@ $<
+else
+  $(error Unknown sml_MODE: $(sml_MODE))
+endif
 
 clean:
-	rm -f $(STEP_BINS) .*.dep *.ui *.uo .*.poly.sml $(sml_MODE_CONFIG)
+	rm -f $(step0A) .*.dep *.ui *.uo .*.poly.sml $(sml_MODE_CONFIG)
 
 .PHONY: all clean

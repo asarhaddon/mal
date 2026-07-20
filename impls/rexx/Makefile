@@ -1,7 +1,6 @@
-SRCS = step0_repl.rexx step1_read_print.rexx step2_eval.rexx step3_env.rexx \
-       step4_if_fn_do.rexx step5_tco.rexx step6_file.rexx step7_quote.rexx \
-       step8_macros.rexx step9_try.rexx stepA_mal.rexx
-PREPROCESSED = $(SRCS:%.rexx=%.rexxpp)
+include ../../steps.mk
+
+PREPROCESSED = $(step0A:=.rexxpp)
 
 all: $(PREPROCESSED) dist
 

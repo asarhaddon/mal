@@ -1,36 +1,35 @@
+include ../../steps.mk
+
 basic_MODE = cbm
 BASICPP_OPTS = --mode $(basic_MODE)
 
 FBC = fbc -lang qb
 
-STEPS4_A = step4_if_fn_do.bas step5_tco.bas step6_file.bas \
-           step7_quote.bas step8_macros.bas step9_try.bas stepA_mal.bas
-STEPS3_A = step3_env.bas $(STEPS4_A)
-STEPS1_A = step1_read_print.bas step2_eval.bas $(STEPS3_A)
-STEPS0_A = step0_repl.bas $(STEPS1_A)
+ifeq (qbasic,$(basic_MODE))
+  all: $(step0A)
+else
+  all: $(step0A:=.bas)
+endif
 
-all: $(if $(filter qbasic,$(basic_MODE)),$(subst .bas,,$(STEPS0_A)),$(STEPS0_A))
-
-$(STEPS0_A): debug.in.bas mem.in.bas readline.in.bas
-$(STEPS1_A): types.in.bas reader.in.bas printer.in.bas
-$(STEPS3_A): env.in.bas
-$(STEPS4_A): core.in.bas
+$(step0A:=.bas): debug.in.bas mem.in.bas readline.in.bas
+$(step1A:=.bas): types.in.bas reader.in.bas printer.in.bas
+$(step3A:=.bas): env.in.bas
+$(step4A:=.bas): core.in.bas
 
 
-
-step%.bas: step%.in.bas
+$(step0A:=.bas): %.bas: %.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
 
 tests/%.bas: tests/%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
 
 # QBasic specific compilation rule
-step%: step%.bas
+$(step0A): %: %.bas
 	$(FBC) $< -x $@
 
 # CBM/C64 image rules
 
-%.prg: %.bas
+$(step0A:=.prg): %.prg: %.bas
 	cat $< | tr "A-Z" "a-z" > $<.tmp
 	#cat $< | sed 's/["]\@<!\<\w\+\>["]\@!/\L&/g' > $<.tmp
 	petcat -w2 -nc -o $@ $<.tmp
@@ -58,5 +57,5 @@ mal.d64: mal.prg .args.mal.prg core.mal.prg
 .PHONY: clean
 
 clean:
-	rm -f $(STEPS0_A) $(subst .bas,,$(STEPS0_A)) *.d64 *.prg
+	rm -f $(step0A:=.bas) $(step0A) *.d64 *.prg
 	rm -rf ./internal

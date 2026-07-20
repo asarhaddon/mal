@@ -1,104 +1,92 @@
+include ../../steps.mk
+#
 STEP1_DEPS = Compat.hx types/Types.hx reader/Reader.hx printer/Printer.hx
-STEP3_DEPS = $(STEP1_DEPS) env/Env.hx
-STEP4_DEPS = $(STEP3_DEPS) core/Core.hx
-
-STEPS = step0_repl step1_read_print step2_eval step3_env \
-	step4_if_fn_do step5_tco step6_file step7_quote \
-	step8_macros step9_try stepA_mal
+STEP3_DEPS = env/Env.hx
+STEP4_DEPS = core/Core.hx
 
 haxe_MODE ?= neko
-dist_neko = mal.n
-dist_python = mal.py
-dist_cpp = cpp/mal
-
-all: all-$(haxe_MODE)
-
-all-neko: $(foreach x,$(STEPS),$(x).n)
-
-all-python: $(foreach x,$(STEPS),$(x).py)
-
-all-cpp: $(foreach x,$(STEPS),cpp/$(x))
-
-all-js: $(foreach x,$(STEPS),$(x).js)
-
-dist: mal.n mal.py cpp/mal mal.js mal
-
-mal.n: stepA_mal.n
-	cp $< $@
-
-mal.py: stepA_mal.py
-	cp $< $@
-
-cpp/mal: cpp/stepA_mal
-	cp $< $@
-
-mal.js: stepA_mal.js
-	cp $< $@
-
-
-mal: $(dist_$(haxe_MODE))
-	$(if $(filter cpp,$(haxe_MODE)),\
-	  cp $< $@;,\
-        $(if $(filter neko,$(haxe_MODE)),\
-	  nekotools boot $<;,\
-        $(if $(filter js,$(haxe_MODE)),\
-	  echo "#!/usr/bin/env node" > $@;\
-	  cat $< >> $@;,\
-        $(if $(filter python,$(haxe_MODE)),\
-	  echo "#!/usr/bin/env python3" > $@;\
-	  cat $< >> $@;,\
-	$(error Invalid haxe_MODE: $(haxe_MODE))))))
-	chmod +x $@
-
 
 # Neko target (neko)
 
-s%.n: S%.hx
-	haxe -main $(patsubst %.hx,%,$<) -neko $@
+ifeq (neko,$(haxe_MODE))
+all: $(step0A:=.n)
 
-step1_read_print.n step2_eval.n: $(STEP1_DEPS)
-step3_env.n: $(STEP3_DEPS)
-step4_if_fn_do.n step5_tco.n step6_file.n step7_quote.n step8_macros.n step9_try.n stepA_mal.n: $(STEP4_DEPS)
+$(step0A:=.n): s%.n: S%.hx
+	haxe -main S$* -neko $@
+
+$(step1A:=.n): $(STEP1_DEPS)
+$(step3A:=.n): $(STEP3_DEPS)
+$(step4A:=.n): $(STEP4_DEPS)
+
+mal: mal.n
+	nekotools boot $<
+	chmod +x $@
+mal.n: stepA_mal.n
+	cp $< $@
 
 
 # Python 3 target (python)
 
-s%.py: S%.hx
-	haxe -main $(patsubst %.hx,%,$<) -python $@
+else ifeq (python,$(haxe_MODE))
+all: $(step0A:=.py)
 
-step1_read_print.py step2_eval.py: $(STEP1_DEPS)
-step3_env.py: $(STEP3_DEPS)
-step4_if_fn_do.py step5_tco.py step6_file.py step7_quote.py step8_macros.py step9_try.py stepA_mal.py: $(STEP4_DEPS)
+$(step0A:=.py): s%.py: S%.hx
+	haxe -main S$* -python $@
+
+$(step1A:=.py): $(STEP1_DEPS)
+$(step3A:=.py): $(STEP3_DEPS)
+$(step4A:=.py): $(STEP4_DEPS)
+
+mal: $(stepA).py
+	(echo '#!/usr/bin/env python3'; cat $<) > $@
+	chmod +x $@
 
 
 # C++ target (cpp)
 
-cpp/s%: S%.hx
-	haxe -main $(patsubst %.hx,%,$<) -cpp cpp
-	cp $(patsubst cpp/s%,cpp/S%,$@) $@
+else ifeq (cpp,$(haxe_MODE))
+all: $(step0A:%=cpp/%)
 
-cpp/step1_read_print cpp/step2_eval: $(STEP1_DEPS)
-cpp/step3_env: $(STEP3_DEPS)
-cpp/step4_if_fn_do cpp/step5_tco cpp/step6_file cpp/step7_quote cpp/step8_macros cpp/step9_try cpp/stepA_mal: $(STEP4_DEPS)
+$(step0A:%=cpp/%): cpp/s%: S%.hx
+	haxe -main S$* -cpp cpp
+	cp cpp/S$* $@
+
+$(step1A:%=cpp/%): $(STEP1_DEPS)
+$(step3A:%=cpp/%): $(STEP3_DEPS)
+$(step4A:%=cpp/%): $(STEP4_DEPS)
+
+mal: cpp/$(stepA)
+	cp $< $@
+	chmod +x $@
 
 
 # JavaScript target (js)
 
-s%.js: S%.hx
-	haxe -main $(patsubst %.hx,%,$<) -js $@
+else ifeq (js,$(haxe_MODE))
+all: $(step0A:=.js)
 
-JS_DEPS = node_readline.js node_modules
-step0_repl.js: $(JS_DEPS)
-step1_read_print.js step2_eval.js: $(STEP1_DEPS) $(JS_DEPS)
-step3_env.js: $(STEP3_DEPS) $(JS_DEPS)
-step4_if_fn_do.js step5_tco.js step6_file.js step7_quote.js step8_macros.js step9_try.js stepA_mal.js: $(STEP4_DEPS) $(JS_DEPS)
+$(step0A:=.js): s%.js: S%.hx
+	haxe -main S$* -js $@
+
+$(step0A:=.js): node_readline.js node_modules
+$(step1A:=.js): $(STEP1_DEPS)
+$(step3A:=.js): $(STEP3_DEPS)
+$(step4A:=.js): $(STEP4_DEPS)
 
 node_modules:
 	npm install
 
+mal:
+	(echo "#!/usr/bin/env node"; cat $<) > $@
+	chmod +x $@
+
 ###
+
+else
+  $(error Invalid haxe_MODE=$(haxe_MODE))
+endif
 
 clean:
 	rm -f mal.n mal.py cpp/mal mal.js mal
-	rm -f step*.py step*.js step*.n
-	[ -e cpp/ ] && rm -r cpp/ || true
+	rm -f $(step0A:=.py) $(step0A:=.js) $(step0A:=.n)
+	rm -fr cpp

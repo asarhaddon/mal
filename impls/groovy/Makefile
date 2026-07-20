@@ -1,28 +1,19 @@
+include ../../steps.mk
+
 CLASSES = types.class reader.class printer.class env.class core.class
 
 all: ${CLASSES}
 
 dist: mal.jar
 
-step1_read_print.groovy: types.class reader.class printer.class
-step2_eval.groovy: types.class reader.class printer.class
-step3_env.groovy: types.class reader.class printer.class env.class
-step4_if_fn_do.groovy step6_file.groovy step7_quote.groovy step8_macros.groovy step9_try.groovy stepA_mal.groovy: ${CLASSES}
+$(step1A:=.groovy): types.class reader.class printer.class
+$(step3A:=.groovy): env.class
+$(step4A:=.groovy): core.class
 
-types.class: types.groovy
+$(CLASSES): %.class: %.groovy
 	groovyc $<
 
-env.class: env.groovy
-	groovyc $<
-
-reader.class: reader.groovy
-	groovyc $<
-
-printer.class: printer.groovy
-	groovyc $<
-
-core.class: core.groovy types.class reader.class printer.class
-	groovyc $<
+core.class: types.class reader.class printer.class
 
 mal.jar: ${CLASSES}
 	groovyc stepA_mal.groovy

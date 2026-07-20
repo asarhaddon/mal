@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 MODE ?= $(strip \
           $(if $(filter wace_libc,$(wasm_MODE)),\
 	    libc,\
@@ -10,31 +12,21 @@ EXT = .wasm
 WASM_AS ?= wasm-as
 WAMP ?= node_modules/.bin/wamp
 
-STEP0_DEPS = $(WAMP) platform_$(MODE).wam string.wam printf.wam
-STEP1_DEPS = $(STEP0_DEPS) types.wam mem.wam debug.wam reader.wam printer.wam
-STEP3_DEPS = $(STEP1_DEPS) env.wam
-STEP4_DEPS = $(STEP3_DEPS) core.wam
-
-STEPS = step0_repl step1_read_print step2_eval step3_env \
-        step4_if_fn_do step5_tco step6_file step7_quote \
-        step8_macros step9_try stepA_mal
-
-all: $(STEPS:=$(EXT))
+all: $(step0A:=$(EXT))
 
 $(WAMP):
 	npm install
 
-%.wat: %.wam
+$(step0A:=.wat): %.wat: %.wam
 	$(WAMP) $(filter %.wam,$^) > $*.wat
 
-%.wasm: %.wat
+$(step0A:=.wasm): %.wasm: %.wat
 	$(WASM_AS) $< -o $@
 
-step0_repl.wat: $(STEP0_DEPS)
-step1_read_print.wat step2_eval.wat: $(STEP1_DEPS)
-step3_env.wat: $(STEP3_DEPS)
-step4_if_fn_do.wat step5_tco.wat step6_file.wat: $(STEP4_DEPS)
-step7_quote.wat step8_macros.wat step9_try.wat stepA_mal.wat: $(STEP4_DEPS)
+$(step0A:=.wat): $(WAMP) platform_$(MODE).wam string.wam printf.wam
+$(step1A:=.wat): types.wam mem.wam debug.wam reader.wam printer.wam
+$(step3A:=.wat): env.wam
+$(step4A:=.wat): core.wam
 
 .PHONY: clean
 

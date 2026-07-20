@@ -1,12 +1,4 @@
-STEPS = step0_repl.pas step1_read_print.pas step2_eval.pas \
-	step3_env.pas step4_if_fn_do.pas step5_tco.pas \
-	step6_file.pas step7_quote.pas step8_macros.pas \
-	step9_try.pas stepA_mal.pas
-
-STEP0_DEPS = mal_readline.pas
-STEP1_DEPS = $(STEP0_DEPS) mal_types.pas reader.pas printer.pas
-STEP3_DEPS = $(STEP1_DEPS) mal_env.pas
-STEP4_DEPS = $(STEP3_DEPS) core.pas
+include ../../steps.mk
 
 #####################
 
@@ -17,15 +9,15 @@ USE_READLINE =
 
 FPC = fpc -MOBJFPC -ve -Furegexpr/Source $(DEBUG) $(if $(strip $(USE_READLINE)),-dUSE_READLINE,)
 
-all: $(patsubst %.pas,%,$(STEPS))
+all: $(step0A)
 
-step%: step%.pas
+$(step0A): %: %.pas
 	$(FPC) $<
 
-step0_repl: $(STEP0_DEPS)
-step1_read_print step2_eval: $(STEP1_DEPS)
-step3_env: $(STEP3_DEPS)
-step4_if_fn_do step5_tco step6_file step7_quote step8_macros step9_try stepA_mal: $(STEP4_DEPS)
+$(step0A): mal_readline.pas
+$(step1A): mal_types.pas reader.pas printer.pas
+$(step3A): mal_env.pas
+$(step4A): core.pas
 
 clean:
-	rm -f $(STEPS:%.pas=%) *.o *.ppu regexpr/Source/*.o regexpr/Source/*.ppu mal
+	rm -f $(step0A) *.o *.ppu regexpr/Source/*.o regexpr/Source/*.ppu mal

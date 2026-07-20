@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 #####################
 
 SOURCES_BASE = types.nim reader.nim printer.nim
@@ -5,23 +7,16 @@ SOURCES_REBUILD = $(SOURCES_BASE) env.nim core.nim
 
 #####################
 
-SRCS = step0_repl.nim step1_read_print.nim step2_eval.nim step3_env.nim \
-	step4_if_fn_do.nim step5_tco.nim step6_file.nim step7_quote.nim \
-	step8_macros.nim step9_try.nim stepA_mal.nim
-BINS = $(SRCS:%.nim=%)
-
-#####################
-
-all: $(BINS)
+all: $(step0A)
 
 dist: mal
 
-mal: $(word $(words $(BINS)),$(BINS))
+mal: $(stepA)
 	cp $< $@
 
-$(BINS): %: %.nim $(SOURCES_REBUILD)
+$(step0A): %: %.nim $(SOURCES_REBUILD)
 	nim -d:release --nimcache:nimcache-$@ c $@
 
 clean:
-	rm -rf nimcache-*/ $(BINS)
+	rm -rf nimcache-*/ $(step0A)
 	rm -f mal

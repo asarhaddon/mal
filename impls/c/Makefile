@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 USE_READLINE ?=
 USE_GC ?= 1
 CFLAGS ?= -g -O2
@@ -5,11 +7,6 @@ LDFLAGS ?= -g
 
 #####################
 
-SRCS = step0_repl.c step1_read_print.c step2_eval.c step3_env.c \
-       step4_if_fn_do.c step5_tco.c step6_file.c step7_quote.c \
-       step8_macros.c step9_try.c stepA_mal.c
-OBJS = $(SRCS:%.c=%.o)
-BINS = $(OBJS:%.o=%)
 OTHER_OBJS = types.o readline.o reader.o printer.o env.o core.o interop.o
 OTHER_HDRS = types.h readline.h reader.h printer.h       core.h interop.h
 
@@ -45,17 +42,17 @@ override LDLIBS += \
 
 #####################
 
-all: $(BINS)
+all: $(step0A)
 
 dist: mal
 
-mal: $(word $(words $(BINS)),$(BINS))
+mal: $(stepA)
 	cp $< $@
 
-$(OBJS) $(OTHER_OBJS): %.o: %.c  $(OTHER_HDRS)
+$(step0A:=.o) $(OTHER_OBJS): %.o: %.c $(OTHER_HDRS)
 
-$(patsubst %.o,%,$(filter step%,$(OBJS))): $(OTHER_OBJS)
-$(BINS): %: %.o
+$(step0A): $(OTHER_OBJS)
+$(step0A): %: %.o
 
 clean:
-	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) mal
+	rm -f *.o $(step0A) mal

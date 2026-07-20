@@ -1,36 +1,32 @@
-STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml step3_env.ml \
-        step4_if_fn_do.ml step5_tco.ml step6_file.ml step7_quote.ml \
-	step8_macros.ml step9_try.ml stepA_mal.ml
+include ../../steps.mk
+
 MODULES = types.ml reader.ml printer.ml env.ml core.ml
 LIBS = str.cmxa unix.cmxa
 MAL_LIB = mal_lib.cmxa
 # Apparently necessary with caml 5.0:
 OPTIONS = -I +str -I +unix
 
-STEP_BINS = $(STEPS:%.ml=%)
-LAST_STEP_BIN = $(word $(words $(STEP_BINS)),$(STEP_BINS))
-
-all: $(STEP_BINS)
+all: $(step0A)
 
 dist: mal
 
-mal: $(LAST_STEP_BIN)
+mal: $(stepA)
 	cp $< $@
 
 # ocaml repl apparently needs bytecode, not native, compilation.
 # Just do it all right here:
 repl:
-	ocamlc -c $(LIBS:%.cmxa=%.cma) $(MODULES) $(STEPS)
+	ocamlc -c $(LIBS:%.cmxa=%.cma) $(MODULES) $(step0A:=.ml)
 	rlwrap ocaml $(LIBS:%.cmxa=%.cma) $(MODULES:%.ml=%.cmo)
 
 $(MAL_LIB): $(MODULES)
 	ocamlopt -a $(MODULES) -o $@ $(OPTIONS)
 
-$(STEP_BINS): %: %.ml $(MAL_LIB)
+$(step0A): %: %.ml $(MAL_LIB)
 	ocamlopt $(LIBS) $(MAL_LIB) $< -o $@ $(OPTIONS)
 
 clean:
-	rm -f $(STEP_BINS) mal mal_lib.* *.cmo *.cmx *.cmi *.o
+	rm -f $(step0A) mal mal_lib.* *.cmo *.cmx *.cmi *.o
 
 format:
 	ocamlformat --inplace --enable-outside-detected-project *.ml

@@ -139,7 +139,13 @@ by the quux_STEP_TO_PROG macro. The top-level Makefile will attempt to
 build those targets before running tests. If it is a scripting
 language/uncompiled, then no Makefile is necessary because
 quux_STEP_TO_PROG will point to a source file that already exists and
-does not need to be compiled/built.
+does not need to be compiled/built, but a minimal Makefile like the
+following will help the test driver.
+```
+all clean:
+```
+
+The `steps.mk` helper may be useful, especially for the compiled case.
 
 
 ## General hints

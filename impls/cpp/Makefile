@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
 CXX=g++
@@ -19,14 +21,11 @@ LIBSOURCES=Core.cpp Environment.cpp Reader.cpp ReadLine.cpp String.cpp \
 			Types.cpp Validation.cpp
 LIBOBJS=$(LIBSOURCES:%.cpp=%.o)
 
-MAINS=$(wildcard step*.cpp)
-TARGETS=$(MAINS:%.cpp=%)
-
 .PHONY:	all clean
 
 .SUFFIXES: .cpp .o
 
-all: $(TARGETS)
+all: $(step0A)
 
 dist: mal
 
@@ -36,7 +35,7 @@ mal: stepA_mal
 .deps: *.cpp *.h
 	$(CXX) $(CXXFLAGS) -MM *.cpp > .deps
 
-$(TARGETS): %: %.o libmal.a
+$(step0A): %: %.o libmal.a
 	$(LD) $^ -o $@ $(LDFLAGS)
 
 libmal.a: $(LIBOBJS)
@@ -46,6 +45,6 @@ libmal.a: $(LIBOBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o $(TARGETS) libmal.a .deps mal
+	rm -rf *.o $(step0A) libmal.a .deps mal
 
 -include .deps

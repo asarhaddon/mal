@@ -1,29 +1,26 @@
+include ../../steps.mk
+
 #####################
 
 DEBUG =
 
 SOURCES_BASE = readline.vb types.vb reader.vb printer.vb
-SOURCES_LISP = env.vb core.vb stepA_mal.vb
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+SOURCES_LISP = env.vb core.vb
 
 #####################
 
-SRCS = step0_repl.vb step1_read_print.vb step2_eval.vb \
-       step3_env.vb step4_if_fn_do.vb step5_tco.vb step6_file.vb \
-       step7_quote.vb step8_macros.vb step9_try.vb stepA_mal.vb
-
 LIB_CS_SRCS = getline.cs
-LIB_VB_SRCS = $(filter-out step%,$(filter %.vb,$(SOURCES)))
+LIB_VB_SRCS = $(SOURCES_BASE) $(SOURCES_LISP)
 
 FLAGS = $(if $(strip $(DEBUG)),-debug:full,)
 
 #####################
 
-all: $(patsubst %.vb,%.exe,$(SRCS))
+all: $(step0A:=.exe)
 
 dist: mal.exe
 
-mal.exe: $(patsubst %.vb,%.exe,$(word $(words $(SOURCES)),$(SOURCES)))
+mal.exe: $(stepA).exe
 	cp $< $@
 
 mal_cs.dll: $(LIB_CS_SRCS)

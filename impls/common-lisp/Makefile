@@ -1,3 +1,5 @@
+include ../../steps.mk
+
 # Helper functions
 define record_lisp
 	$(shell (test -f "hist/$(1)_impl" && grep -q $(2) "hist/$(1)_impl") || echo $(2) > "hist/$(1)_impl")
@@ -15,9 +17,6 @@ LISP ?= sbcl
 ABCL ?= abcl
 MKCL ?= mkcl
 
-BINS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
-       step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
-
 # TODO: In theory cl-launch should be able to build standalone executable using
 # MKCL unfortunately the executable crashes on startup
 STANDALONE_EXE = sbcl clisp ccl ecl cmucl
@@ -31,7 +30,7 @@ $(foreach step, $(call steps), $(call record_lisp,$(patsubst step%,%,$(step)),$(
 
 .PRECIOUS: hist/%_impl
 
-all : $(BINS)
+all : $(step0A)
 
 hist/%_impl: ;
 
@@ -39,7 +38,7 @@ hist/%_impl: ;
 # directory of the CL_LAUNCH_FILE in --wrap script so that the script can find the dumped
 # image even if invoked from some directory different from where it
 # currently resides
-step% : src/step%.lisp src/utils.lisp src/types.lisp src/env.lisp src/printer.lisp src/reader.lisp src/core.lisp hist/%_impl
+$(step0A): step% : src/step%.lisp src/utils.lisp src/types.lisp src/env.lisp src/printer.lisp src/reader.lisp src/core.lisp hist/%_impl
 
 ifeq ($(LISP),clisp)
 	@echo "=============================================================="
