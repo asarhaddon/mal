@@ -41,6 +41,15 @@
         (LET env (rest (rest binds)) form))
       (throw "invalid binds")))))
 
+(def! formal-parameters? (fn* [xs]
+  ; empty? or (symbol? and (&? implies 2?) and recursion?)
+  (if (empty? xs)
+    true
+    (let* [x0 (first xs)]
+      (if (symbol? x0)
+        (if (if (= x0 '&) (= 2 (count xs)) true)
+          (formal-parameters? (rest xs))))))))
+
 (def! EVAL (fn* [ast env]
   (do
     (if (env-get env "DEBUG-EVAL" false)
@@ -110,8 +119,12 @@
                 (throw "bad argument count"))
 
               (= 'fn* a0)
-              (if (if (= 3 (count ast)) (sequential? (nth ast 1)))
-                (fn* [& args] (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+              (if (if (= 3 (count ast))
+                    (if (sequential? (nth ast 1))
+                      (formal-parameters? (nth ast 1))))
+                (let* [binds (map str (nth ast 1))
+                       body  (nth ast 2)]
+                  (fn* [& args] (EVAL body (new-env env binds args))))
                 (throw "bad arguments"))
 
               "else"
