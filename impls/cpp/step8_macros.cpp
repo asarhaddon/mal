@@ -154,7 +154,8 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 checkArgsIs("let*", 2, argCount);
                 const malSequence* bindings =
                     VALUE_CAST("let*", malSequence, list->item(1));
-                int count = checkArgsEven("let*", bindings->count());
+                int count = bindings->count();
+                checkArgsEven("let*", count);
                 malEnvPtr inner(new malEnv(env));
                 for (int i = 0; i < count; i += 2) {
                     const malSymbol* var =

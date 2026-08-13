@@ -113,9 +113,9 @@ static malValuePtr builtIn_add(const String& name,
 static malValuePtr builtIn_sub(const String& name,
     malValueIter argsBegin, malValueIter argsEnd)
 {
-        int argCount = CHECK_ARGS_BETWEEN(1, 2);
+        CHECK_ARGS_BETWEEN(1, 2);
         ARG(malInteger, lhs);
-        if (argCount == 1) {
+        if (argsBegin == argsEnd) {
             return mal::integer(- lhs->value());
         }
         ARG(malInteger, rhs);

@@ -86,7 +86,8 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 checkArgsIs("let*", 2, argCount);
                 const malSequence* bindings =
                     VALUE_CAST("let*", malSequence, list->item(1));
-                int count = checkArgsEven("let*", bindings->count());
+                int count = bindings->count();
+                checkArgsEven("let*", count);
                 malEnvPtr inner(new malEnv(env));
                 for (int i = 0; i < count; i += 2) {
                     const malSymbol* var =
@@ -133,9 +134,9 @@ static malValuePtr builtIn_add(const String& name,
 static malValuePtr builtIn_sub(const String& name,
     malValueIter argsBegin, malValueIter argsEnd)
 {
-        int argCount = CHECK_ARGS_BETWEEN(1, 2);
+        CHECK_ARGS_BETWEEN(1, 2);
         ARG(malInteger, lhs);
-        if (argCount == 1) {
+        if (argsBegin == argsEnd) {
             return mal::integer(- lhs->value());
         }
         ARG(malInteger, rhs);
