@@ -43,12 +43,12 @@
 
 (def! EVAL (fn* [ast env]
   (do
-    (if (env-get-or-nil env 'DEBUG-EVAL)
+    (if (env-get env "DEBUG-EVAL" false)
       (println "EVAL:" (pr-str ast (env-as-map env))))
     (try*
       (cond
         (symbol? ast)
-        (env-get env ast)
+        (env-get env (str ast) true)
 
         (vector? ast)
         (vec (map (fn* [exp] (EVAL exp env)) ast))
