@@ -156,8 +156,6 @@ public:
     malSequence(const malSequence& that, malValuePtr meta);
     virtual ~malSequence();
 
-    virtual String print(bool readably) const;
-
     int count() const { return m_items->size(); }
     bool isEmpty() const { return m_items->empty(); }
     malValuePtr item(int index) const { return (*m_items)[index]; }
@@ -362,3 +360,6 @@ namespace mal {
     malValuePtr vector(malValueVec* items);
     malValuePtr vector(malValueIter begin, malValueIter end);
 };
+
+String printValues(malValueIter begin, malValueIter end,
+                   const String& sep, bool readably);

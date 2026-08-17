@@ -21,9 +21,6 @@
     checkArgsAtLeast(name.c_str(), expected, \
                         std::distance(argsBegin, argsEnd))
 
-static String printValues(malValueIter begin, malValueIter end,
-                           const String& sep, bool readably);
-
 std::vector<malBuiltIn*> handlers;
 // We want to populate this list without duplication of the function
 // names in the source (or source generation).
@@ -560,22 +557,4 @@ void installCore() {
         malBuiltIn* handler = *it;
         replEnv->set(handler->name(), handler);
     }
-}
-
-static String printValues(malValueIter begin, malValueIter end,
-                          const String& sep, bool readably)
-{
-    String out;
-
-    if (begin != end) {
-        out += (*begin)->print(readably);
-        ++begin;
-    }
-
-    for ( ; begin != end; ++begin) {
-        out += sep;
-        out += (*begin)->print(readably);
-    }
-
-    return out;
 }

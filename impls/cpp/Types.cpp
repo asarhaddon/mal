@@ -354,7 +354,7 @@ malValuePtr malList::conj(malValueIter argsBegin,
 
 String malList::print(bool readably) const
 {
-    return '(' + malSequence::print(readably) + ')';
+    return '(' + printValues(begin(), end(), " ", readably) + ')';
 }
 
 malValue::malValue(malValuePtr meta)
@@ -445,19 +445,21 @@ malValuePtr malSequence::first() const
     return count() == 0 ? mal::nilValue() : item(0);
 }
 
-String malSequence::print(bool readably) const
+String printValues(malValueIter begin, malValueIter end,
+                   const String& sep, bool readably)
 {
     String str;
-    auto end = m_items->cend();
-    auto it = m_items->cbegin();
+    auto it = begin;
     if (it != end) {
         str += (*it)->print(readably);
         ++it;
     }
+
     for ( ; it != end; ++it) {
-        str += " ";
+        str += sep;
         str += (*it)->print(readably);
     }
+
     return str;
 }
 
@@ -501,5 +503,5 @@ malValuePtr malVector::fmap(std::function<malValuePtr(malValuePtr)> f) const
 
 String malVector::print(bool readably) const
 {
-    return '[' + malSequence::print(readably) + ']';
+    return '[' + printValues(begin(), end(), " ", readably) + ']';
 }
