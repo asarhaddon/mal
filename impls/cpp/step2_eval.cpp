@@ -22,7 +22,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env);
 static malBuiltIn::ApplyFunc
     builtIn_add, builtIn_sub, builtIn_mul, builtIn_div;
 
-int main(int argc, char* argv[])
+int main(int, char*[])
 {
     String prompt = "user> ";
     String input;

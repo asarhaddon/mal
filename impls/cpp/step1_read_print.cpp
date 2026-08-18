@@ -10,7 +10,7 @@ String PRINT(malValuePtr ast);
 static String rep(const String& input);
 static malValuePtr EVAL(malValuePtr ast);
 
-int main(int argc, char* argv[])
+int main(int, char*[])
 {
     String prompt = "user> ";
     String input;

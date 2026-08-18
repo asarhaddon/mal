@@ -35,6 +35,8 @@ bool addHandler(const String &name, malBuiltIn::ApplyFunc handler)
     return false;
 }
 
+#define BUILTIN_UNUSED_PARAMETER_NAME (void)name
+
 #define ARG(type, var) type* var = VALUE_CAST(name, type, *argsBegin++)
 
 #define FUNCNAME(uniq) builtIn ## uniq
@@ -327,6 +329,7 @@ BUILTIN("keyword")
 
 BUILTIN("list")
 {
+    BUILTIN_UNUSED_PARAMETER_NAME;
     return mal::list(argsBegin, argsEnd);
 }
 
@@ -377,17 +380,20 @@ BUILTIN("nth")
 
 BUILTIN("pr-str")
 {
+    BUILTIN_UNUSED_PARAMETER_NAME;
     return mal::string(printValues(argsBegin, argsEnd, " ", true));
 }
 
 BUILTIN("println")
 {
+    BUILTIN_UNUSED_PARAMETER_NAME;
     std::cout << printValues(argsBegin, argsEnd, " ", false) << "\n";
     return mal::nilValue();
 }
 
 BUILTIN("prn")
 {
+    BUILTIN_UNUSED_PARAMETER_NAME;
     std::cout << printValues(argsBegin, argsEnd, " ", true) << "\n";
     return mal::nilValue();
 }
@@ -477,6 +483,7 @@ BUILTIN("slurp")
 
 BUILTIN("str")
 {
+    BUILTIN_UNUSED_PARAMETER_NAME;
     return mal::string(printValues(argsBegin, argsEnd, "", false));
 }
 
@@ -536,6 +543,7 @@ BUILTIN("vec")
 
 BUILTIN("vector")
 {
+    BUILTIN_UNUSED_PARAMETER_NAME;
     return mal::vector(argsBegin, argsEnd);
 }
 

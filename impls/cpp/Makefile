@@ -29,7 +29,7 @@ LINK.o = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 DEBUG=-ggdb
 OPT = -O3
-WARN = -Wall
+WARN = -Wall -Wextra
 STDCXX = -std=c++11
 
 CPPFLAGS += $(INCPATHS)

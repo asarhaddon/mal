@@ -8,7 +8,7 @@ String EVAL(const String& ast);
 String PRINT(const String& ast);
 String rep(const String& input);
 
-int main(int argc, char* argv[])
+int main(int, char*[])
 {
     String prompt = "user> ";
     String input;

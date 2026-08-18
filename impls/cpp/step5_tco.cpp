@@ -15,7 +15,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env);
 
 const malEnvPtr replEnv(new malEnv);
 
-int main(int argc, char* argv[])
+int main(int, char*[])
 {
     String prompt = "user> ";
     String input;
