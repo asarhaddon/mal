@@ -1,4 +1,4 @@
-uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
+uname_S != uname -s 2>/dev/null
 
 CXX=g++
 ifeq ($(uname_S),Darwin)
@@ -8,12 +8,17 @@ ifeq ($(uname_S),Darwin)
 	LIBPATHS=-L$(READLINE)/lib
 endif
 
-LD=$(CXX)
+LINK.o = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 AR=ar
 
 DEBUG=-ggdb
-CXXFLAGS=-O3 -Wall $(DEBUG) $(INCPATHS) -std=c++11
-LDFLAGS=-O3 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory
+OPT = -O3
+WARN = -Wall
+STDCXX = -std=c++11
+
+CPPFLAGS += $(INCPATHS)
+CXXFLAGS += $(OPT) $(WARN) $(DEBUG) $(STDCXX)
+LDLIBS += $(LIBPATHS) -lreadline -lhistory
 
 LIBSOURCES=Core.cpp Environment.cpp Reader.cpp ReadLine.cpp String.cpp \
 			Types.cpp Validation.cpp
@@ -22,9 +27,7 @@ LIBOBJS=$(LIBSOURCES:%.cpp=%.o)
 MAINS=$(wildcard step*.cpp)
 TARGETS=$(MAINS:%.cpp=%)
 
-.PHONY:	all clean
-
-.SUFFIXES: .cpp .o
+.PHONY:	all clean dist
 
 all: $(TARGETS)
 
@@ -34,18 +37,14 @@ mal: stepA_mal
 	cp $< $@
 
 .deps: *.cpp *.h
-	$(CXX) $(CXXFLAGS) -MM *.cpp > .deps
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -MM *.cpp > .deps
 
-$(TARGETS): %: %.o libmal.a
-	$(LD) $^ -o $@ $(LDFLAGS)
+$(TARGETS): libmal.a
 
 libmal.a: $(LIBOBJS)
 	$(AR) rcs $@ $^
 
-.cpp.o:
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
 clean:
-	rm -rf *.o $(TARGETS) libmal.a .deps mal
+	rm -f *.o $(TARGETS) libmal.a .deps mal
 
 -include .deps
