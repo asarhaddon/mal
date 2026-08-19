@@ -5,7 +5,6 @@
 #include "Types.h"
 
 #include <iostream>
-#include <memory>
 
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
@@ -153,31 +152,24 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         }
 
         // Now we're left with the case of a regular list to be evaluated.
-        std::unique_ptr<malValueVec> items(list->evalItems(env));
-        malValuePtr op = items->at(0);
-        if (const malLambda* lambda = DYNAMIC_CAST(malLambda, op)) {
+        auto op = VALUE_CAST(malApplicable, EVAL(list->item(0), env));
+        auto lambda = dynamic_cast<malLambda*>(op);
+        malValueVec items;
+        for (auto i = list->begin() + 1, e = list->end(); i != e; ++i) {
+            items.push_back(EVAL(*i, env));
+        }
+        if (lambda) {
             ast = lambda->getBody();
-            env = lambda->makeEnv(items->begin()+1, items->end());
+            env = lambda->makeEnv(items.begin(), items.end());
             continue; // TCO
         }
-        else {
-            return APPLY(op, items->begin()+1, items->end());
-        }
+        return op->apply(items.begin(), items.end());
     }
 }
 
 String PRINT(malValuePtr ast)
 {
     return ast->print(true);
-}
-
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
-{
-    const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
-    MAL_CHECK(handler != NULL,
-              "\"%s\" is not applicable", op->print(true).c_str());
-
-    return handler->apply(argsBegin, argsEnd);
 }
 
 static const char* malFunctionTable[] = {

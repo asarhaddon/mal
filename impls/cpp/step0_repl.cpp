@@ -2,7 +2,6 @@
 #include "ReadLine.h"
 
 #include <iostream>
-#include <memory>
 
 String READ(const String& input);
 String EVAL(const String& ast);

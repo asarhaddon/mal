@@ -329,18 +329,9 @@ malValuePtr malList::conj(malValueIter argsBegin,
     return mal::list(items);
 }
 
-malValuePtr malList::eval(malEnvPtr env)
+malValuePtr malList::eval(malEnvPtr)
 {
-    // Note, this isn't actually called since the TCO updates, but
-    // is required for the earlier steps, so don't get rid of it.
-    if (count() == 0) {
-        return malValuePtr(this);
-    }
-
-    std::unique_ptr<malValueVec> items(evalItems(env));
-    auto it = items->begin();
-    malValuePtr op = *it;
-    return APPLY(op, ++it, items->end());
+    MAL_FAIL("lists are evaluated in EVAL");
 }
 
 String malList::print(bool readably) const
@@ -422,16 +413,6 @@ bool malSequence::doIsEqualTo(const malValue* rhs) const
     return true;
 }
 
-malValueVec* malSequence::evalItems(malEnvPtr env) const
-{
-    malValueVec* items = new malValueVec;;
-    items->reserve(count());
-    for (auto it = m_items->begin(), end = m_items->end(); it != end; ++it) {
-        items->push_back(EVAL(*it, env));
-    }
-    return items;
-}
-
 malValuePtr malSequence::first() const
 {
     return count() == 0 ? mal::nilValue() : item(0);
@@ -489,7 +470,11 @@ malValuePtr malVector::conj(malValueIter argsBegin,
 
 malValuePtr malVector::eval(malEnvPtr env)
 {
-    return mal::vector(evalItems(env));
+    malValueVec* items = new malValueVec;;
+    for (const auto &x : *this) {
+        items->push_back(EVAL(x, env));
+    }
+    return mal::vector(items);
 }
 
 String malVector::print(bool readably) const

@@ -4,7 +4,6 @@
 #include "Types.h"
 
 #include <iostream>
-#include <memory>
 
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
@@ -56,11 +55,6 @@ String PRINT(malValuePtr ast)
 
 // These have been added after step 1 to keep the linker happy.
 malValuePtr EVAL(malValuePtr ast, malEnvPtr)
-{
-    return ast;
-}
-
-malValuePtr APPLY(malValuePtr ast, malValueIter, malValueIter)
 {
     return ast;
 }

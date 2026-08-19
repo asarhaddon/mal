@@ -5,7 +5,6 @@
 #include "Types.h"
 
 #include <iostream>
-#include <memory>
 
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
@@ -53,21 +52,25 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
     // std::cout << "EVAL: " << PRINT(ast) << "\n";
 
-    return ast->eval(env);
+        const malList* list = DYNAMIC_CAST(malList, ast);
+        if (!list || (list->count() == 0)) {
+            return ast->eval(env);
+        }
+
+        // From here on down we are evaluating a non-empty list.
+
+        // Now we're left with the case of a regular list to be evaluated.
+        auto op = VALUE_CAST(malApplicable, EVAL(list->item(0), env));
+        malValueVec items;
+        for (auto i = list->begin() + 1, e = list->end(); i != e; ++i) {
+            items.push_back(EVAL(*i, env));
+        }
+        return op->apply(items.begin(), items.end());
 }
 
 String PRINT(malValuePtr ast)
 {
     return ast->print(true);
-}
-
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
-{
-    const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
-    MAL_CHECK(handler != NULL,
-              "\"%s\" is not applicable", op->print(true).c_str());
-
-    return handler->apply(argsBegin, argsEnd);
 }
 
 #define ARG(type, name) type* name = VALUE_CAST(type, *argsBegin++)

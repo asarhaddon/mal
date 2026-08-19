@@ -5,7 +5,6 @@
 #include "Types.h"
 
 #include <iostream>
-#include <memory>
 
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
@@ -225,36 +224,28 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         }
 
         // Now we're left with the case of a regular list to be evaluated.
-        malValuePtr op = EVAL(list->item(0), env);
-        if (const malLambda* lambda = DYNAMIC_CAST(malLambda, op)) {
-            if (lambda->isMacro()) {
-                ast = lambda->apply(list->begin()+1, list->end());
-                continue; // TCO
-            }
-            malValueVec* items = STATIC_CAST(malList, list->rest())->evalItems(env);
-            ast = lambda->getBody();
-            env = lambda->makeEnv(items->begin(), items->end());
+        auto op = VALUE_CAST(malApplicable, EVAL(list->item(0), env));
+        auto lambda = dynamic_cast<malLambda*>(op);
+        if (lambda && lambda->isMacro()) {
+            ast = lambda->apply(list->begin()+1, list->end());
             continue; // TCO
         }
-        else {
-            malValueVec* items = STATIC_CAST(malList, list->rest())->evalItems(env);
-            return APPLY(op, items->begin(), items->end());
+        malValueVec items;
+        for (auto i = list->begin() + 1, e = list->end(); i != e; ++i) {
+            items.push_back(EVAL(*i, env));
         }
+        if (lambda) {
+            ast = lambda->getBody();
+            env = lambda->makeEnv(items.begin(), items.end());
+            continue; // TCO
+        }
+        return op->apply(items.begin(), items.end());
     }
 }
 
 String PRINT(malValuePtr ast)
 {
     return ast->print(true);
-}
-
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
-{
-    const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
-    MAL_CHECK(handler != NULL,
-              "\"%s\" is not applicable", op->print(true).c_str());
-
-    return handler->apply(argsBegin, argsEnd);
 }
 
 static bool isSymbol(malValuePtr obj, const String& text)

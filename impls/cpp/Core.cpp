@@ -139,7 +139,7 @@ BUILTIN("=")
 BUILTIN("apply")
 {
     CHECK_ARGS_AT_LEAST(2);
-    malValuePtr op = *argsBegin++; // this gets checked in APPLY
+    ARG(malApplicable, op);
 
     // Copy the first N-1 arguments in.
     malValueVec args(argsBegin, argsEnd-1);
@@ -150,7 +150,7 @@ BUILTIN("apply")
         args.push_back(lastArg->item(i));
     }
 
-    return APPLY(op, args.begin(), args.end());
+    return op->apply(args.begin(), args.end());
 }
 
 BUILTIN("assoc")
@@ -332,14 +332,14 @@ BUILTIN("macro?")
 BUILTIN("map")
 {
     CHECK_ARGS_IS(2);
-    malValuePtr op = *argsBegin++; // this gets checked in APPLY
+    ARG(malApplicable, op);
     ARG(malSequence, source);
 
     const int length = source->count();
     malValueVec* items = new malValueVec(length);
     auto it = source->begin();
     for (int i = 0; i < length; i++) {
-      items->at(i) = APPLY(op, it+i, it+i+1);
+      items->at(i) = op->apply(it+i, it+i+1);
     }
 
     return  mal::list(items);
@@ -471,13 +471,13 @@ BUILTIN("swap!")
     CHECK_ARGS_AT_LEAST(2);
     ARG(malAtom, atom);
 
-    malValuePtr op = *argsBegin++; // this gets checked in APPLY
+    ARG(malApplicable, op);
 
     malValueVec args(1 + argsEnd - argsBegin);
     args[0] = atom->deref();
     std::copy(argsBegin, argsEnd, args.begin() + 1);
 
-    malValuePtr value = APPLY(op, args.begin(), args.end());
+    malValuePtr value = op->apply(args.begin(), args.end());
     return atom->reset(value);
 }
 
