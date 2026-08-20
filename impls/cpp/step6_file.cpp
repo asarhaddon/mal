@@ -48,11 +48,11 @@ String rep(const String& input, malEnvPtr env)
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[])
 {
-    malValueVec* args = new malValueVec();
+    auto args = new malList();
     for (int i = 0; i < argc; i++) {
         args->push_back(mal::string(argv[i]));
     }
-    env->set("*ARGV*", mal::list(args));
+    env->set("*ARGV*", malValuePtr(args));
 }
 
 malValuePtr READ(const String& input)

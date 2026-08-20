@@ -51,11 +51,11 @@ String rep(const String& input, malEnvPtr env)
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[])
 {
-    malValueVec* args = new malValueVec();
+    auto args = new malList();
     for (int i = 0; i < argc; i++) {
         args->push_back(mal::string(argv[i]));
     }
-    env->set("*ARGV*", mal::list(args));
+    env->set("*ARGV*", malValuePtr(args));
 }
 
 malValuePtr READ(const String& input)
@@ -235,7 +235,7 @@ static malValuePtr quasiquote(malValuePtr obj)
     if (unquoted)
         return unquoted;
 
-    malValuePtr res = mal::list(new malValueVec(0));
+    malValuePtr res = mal::list();
     for (int i=seq->count()-1; 0<=i; i--) {
         const malValuePtr elt     = seq->item(i);
         const malValuePtr spl_unq = starts_with(elt, "splice-unquote");

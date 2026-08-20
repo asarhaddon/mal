@@ -3,6 +3,7 @@
 #include "Validation.h"
 
 #include <regex>
+#include <functional>
 
 typedef std::regex              Regex;
 
@@ -115,7 +116,8 @@ void Tokeniser::skipWhitespace()
 
 static malValuePtr readAtom(Tokeniser& tokeniser);
 static malValuePtr readForm(Tokeniser& tokeniser);
-static void readList(Tokeniser& tokeniser, malValueVec* items,
+static void readList(Tokeniser& tokeniser,
+                     std::function<void(malValuePtr)> process,
                       const String& end);
 static malValuePtr processMacro(Tokeniser& tokeniser, const String& symbol);
 
@@ -136,21 +138,24 @@ static malValuePtr readForm(Tokeniser& tokeniser)
 
     if (token == "(") {
         tokeniser.next();
-        std::unique_ptr<malValueVec> items(new malValueVec);
-        readList(tokeniser, items.get(), ")");
-        return mal::list(items.release());
+        auto items = new malList();
+        readList(tokeniser,
+                 [items] (malValuePtr x) { items->push_back(x); }, ")");
+        return malValuePtr(items);
     }
     if (token == "[") {
         tokeniser.next();
-        std::unique_ptr<malValueVec> items(new malValueVec);
-        readList(tokeniser, items.get(), "]");
-        return mal::vector(items.release());
+        auto items = new malVector();
+        readList(tokeniser,
+                 [items] (malValuePtr x) { items->push_back(x); }, "]");
+        return malValuePtr(items);
     }
     if (token == "{") {
         tokeniser.next();
         malValueVec items;
-        readList(tokeniser, &items, "}");
-        return mal::hash(items.begin(), items.end());
+        readList(tokeniser,
+                 [&items] (malValuePtr x) { items.push_back(x); }, "}");
+        return mal::hash(items.begin(), items.end(), "{ } map literal");
     }
     return readAtom(tokeniser);
 }
@@ -208,7 +213,8 @@ static malValuePtr readAtom(Tokeniser& tokeniser)
     return mal::symbol(token);
 }
 
-static void readList(Tokeniser& tokeniser, malValueVec* items,
+static void readList(Tokeniser& tokeniser,
+                     std::function<void(malValuePtr)> process,
                       const String& end)
 {
     while (1) {
@@ -217,7 +223,7 @@ static void readList(Tokeniser& tokeniser, malValueVec* items,
             tokeniser.next();
             return;
         }
-        items->push_back(readForm(tokeniser));
+        process(readForm(tokeniser));
     }
 }
 

@@ -4,7 +4,7 @@
 #include "String.h"
 
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 class malValue;
@@ -17,23 +17,16 @@ typedef RefCountedPtr<malEnv> malEnvPtr;
 
 class malValue : public RefCounted {
 public:
-    malValue(malValuePtr meta = NULL);
     virtual ~malValue();
-
-    malValuePtr withMeta(malValuePtr meta) const;
-    virtual malValuePtr doWithMeta(malValuePtr meta) const = 0;
+    virtual malValuePtr doWithMeta(malValuePtr meta) const;
     malValuePtr meta() const;
-
     bool isTrue() const;
-
-    bool isEqualTo(const malValue* rhs) const;
-
+    virtual bool doIsEqualTo(const malValue* rhs) const;
     virtual String print(bool readably) const = 0;
-
 protected:
-    virtual bool doIsEqualTo(const malValue* rhs) const = 0;
-
-    malValuePtr m_meta;
+    malValue(malValuePtr meta = NULL);
+private:
+    const malValuePtr m_meta;
 };
 
 template<class T>
@@ -43,189 +36,108 @@ T* value_cast(const String& context, malValuePtr obj, const char* typeName);
 #define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value).ptr()))
 #define STATIC_CAST(Type, Value)   (static_cast<Type*>((Value).ptr()))
 
-#define WITH_META(Type) \
-    virtual malValuePtr doWithMeta(malValuePtr meta) const { \
-        return new Type(*this, meta); \
-    } \
-
 class malConstant : public malValue {
 public:
-    malConstant(String name) : m_name(name) { }
-    malConstant(const malConstant& that, malValuePtr meta)
-        : malValue(meta), m_name(that.m_name) { }
-
-    virtual String print(bool readably) const { return m_name; }
-
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return this == rhs; // these are singletons
-    }
-
-    WITH_META(malConstant);
-
+    malConstant(String name);
+    String print(bool readably) const override;
+    bool doIsEqualTo(const malValue* rhs) const override;
 private:
     const String m_name;
 };
 
 class malInteger : public malValue {
 public:
-    malInteger(int64_t value) : m_value(value) { }
-    malInteger(const malInteger& that, malValuePtr meta)
-        : malValue(meta), m_value(that.m_value) { }
-
-    virtual String print(bool readably) const {
-        return std::to_string(m_value);
-    }
-
-    int64_t value() const { return m_value; }
-
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return m_value == static_cast<const malInteger*>(rhs)->m_value;
-    }
-
-    WITH_META(malInteger);
-
+    malInteger(int64_t value);
+    String print(bool readably) const override;
+    int64_t value() const;
+    bool doIsEqualTo(const malValue* rhs) const override;
 private:
     const int64_t m_value;
 };
 
 class malStringBase : public malValue {
 public:
-    malStringBase(const String& token)
-        : m_value(token) { }
-    malStringBase(const malStringBase& that, malValuePtr meta)
-        : malValue(meta), m_value(that.value()) { }
-
-    virtual String print(bool readably) const { return m_value; }
-
-    String value() const { return m_value; }
-
+    String print(bool readably) const override;
+    String value() const;
+protected:
+    malStringBase(const String& token);
 private:
     const String m_value;
 };
 
 class malString : public malStringBase {
 public:
-    malString(const String& token)
-        : malStringBase(token) { }
-    malString(const malString& that, malValuePtr meta)
-        : malStringBase(that, meta) { }
-
-    virtual String print(bool readably) const;
-
-    String escapedValue() const;
-
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return value() == static_cast<const malString*>(rhs)->value();
-    }
-
-    WITH_META(malString);
+    malString(const String& token);
+    String print(bool readably) const override;
+    bool doIsEqualTo(const malValue* rhs) const override;
 };
 
 class malKeyword : public malStringBase {
 public:
-    malKeyword(const String& token)
-        : malStringBase(token) { }
-    malKeyword(const malKeyword& that, malValuePtr meta)
-        : malStringBase(that, meta) { }
-
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return value() == static_cast<const malKeyword*>(rhs)->value();
-    }
-
-    WITH_META(malKeyword);
+    malKeyword(const String& token);
+    bool doIsEqualTo(const malValue* rhs) const override;
 };
 
 class malSymbol : public malStringBase {
 public:
-    malSymbol(const String& token)
-        : malStringBase(token) { }
-    malSymbol(const malSymbol& that, malValuePtr meta)
-        : malStringBase(that, meta) { }
-
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return value() == static_cast<const malSymbol*>(rhs)->value();
-    }
-
-    WITH_META(malSymbol);
+    malSymbol(const String& token);
+    bool doIsEqualTo(const malValue* rhs) const override;
 };
 
 class malSequence : public malValue {
 public:
-    malSequence(malValueVec* items);
-    malSequence(malValueIter begin, malValueIter end);
-    malSequence(const malSequence& that, malValuePtr meta);
-    virtual ~malSequence();
-
-    int count() const { return m_items->size(); }
-    bool isEmpty() const { return m_items->empty(); }
-    malValuePtr item(int index) const { return (*m_items)[index]; }
-
-    malValueIter begin() const { return m_items->begin(); }
-    malValueIter end()   const { return m_items->end(); }
-
-    virtual bool doIsEqualTo(const malValue* rhs) const;
-
+    void push_back(malValuePtr newItem);
+    int count() const;
+    bool isEmpty() const;
+    malValuePtr item(int index) const;
+    malValueIter begin() const;
+    malValueIter end() const;
+    bool doIsEqualTo(const malValue* rhs) const override;
     virtual malValuePtr conj(malValueIter argsBegin,
                               malValueIter argsEnd) const = 0;
-
     malValuePtr first() const;
-    virtual malValuePtr rest() const;
-
+    malValuePtr rest() const;
+protected:
+    malSequence();
+    malSequence(malValueIter begin, malValueIter end, malValuePtr meta = NULL);
 private:
-    malValueVec* const m_items;
+    malValueVec m_items;
 };
 
 class malList : public malSequence {
 public:
-    malList(malValueVec* items) : malSequence(items) { }
-    malList(malValueIter begin, malValueIter end)
-        : malSequence(begin, end) { }
-    malList(const malList& that, malValuePtr meta)
-        : malSequence(that, meta) { }
-
-    virtual String print(bool readably) const;
-
-    virtual malValuePtr conj(malValueIter argsBegin,
-                             malValueIter argsEnd) const;
-
-    WITH_META(malList);
+    malList();
+    malList(malValueIter begin, malValueIter end, malValuePtr meta = NULL);
+    String print(bool readably) const override;
+    malValuePtr conj(malValueIter argsBegin,
+                     malValueIter argsEnd) const override;
+    malValuePtr doWithMeta(malValuePtr meta) const override;
 };
 
 class malVector : public malSequence {
 public:
-    malVector(malValueVec* items) : malSequence(items) { }
-    malVector(malValueIter begin, malValueIter end)
-        : malSequence(begin, end) { }
-    malVector(const malVector& that, malValuePtr meta)
-        : malSequence(that, meta) { }
-
+    malVector();
+    malVector(malValueIter begin, malValueIter end, malValuePtr meta = NULL);
     malValuePtr fmap(std::function<malValuePtr(malValuePtr)> f) const;
-    virtual String print(bool readably) const;
-
-    virtual malValuePtr conj(malValueIter argsBegin,
-                             malValueIter argsEnd) const;
-
-    WITH_META(malVector);
+    String print(bool readably) const override;
+    malValuePtr conj(malValueIter argsBegin,
+                     malValueIter argsEnd) const override;
+    malValuePtr doWithMeta(malValuePtr meta) const override;
 };
 
 class malApplicable : public malValue {
 public:
-    malApplicable() { }
-    malApplicable(malValuePtr meta) : malValue(meta) { }
-
     virtual malValuePtr apply(malValueIter argsBegin,
                                malValueIter argsEnd) const = 0;
+protected:
+    malApplicable() { }
+    malApplicable(malValuePtr meta) : malValue(meta) { }
 };
 
 class malHash : public malValue {
 public:
-    typedef std::map<String, malValuePtr> Map;
-
-    malHash(malValueIter argsBegin, malValueIter argsEnd);
-    malHash(const malHash::Map& map);
-    malHash(const malHash& that, malValuePtr meta)
-    : malValue(meta), m_map(that.m_map) { }
-
+    malHash(malValueIter argsBegin, malValueIter argsEnd,
+            const String& context);
     malValuePtr assoc(malValueIter argsBegin, malValueIter argsEnd) const;
     malValuePtr dissoc(malValueIter argsBegin, malValueIter argsEnd) const;
     bool contains(malValuePtr key) const;
@@ -233,15 +145,23 @@ public:
     malValuePtr get(malValuePtr key) const;
     malValuePtr keys() const;
     malValuePtr values() const;
-
-    virtual String print(bool readably) const;
-
-    virtual bool doIsEqualTo(const malValue* rhs) const;
-
-    WITH_META(malHash);
-
+    String print(bool readably) const override;
+    bool doIsEqualTo(const malValue* rhs) const override;
+    malValuePtr doWithMeta(malValuePtr meta) const override;
 private:
-    const Map m_map;
+    struct malKeyHash {
+        size_t operator()(const malValuePtr& key) const;
+    };
+    struct malKeyEqual {
+        bool operator()(const malValuePtr& lhs, const malValuePtr& rhs) const;
+    };
+    typedef std::unordered_map<malValuePtr, malValuePtr, malKeyHash,
+                               malKeyEqual> Map;
+    void addToMap(malValueIter argsBegin, malValueIter argsEnd,
+                  const String& context);
+    malHash();
+    malHash(const Map &map, malValuePtr meta = NULL);
+    Map m_map;
 };
 
 class malBuiltIn : public malApplicable {
@@ -249,28 +169,12 @@ public:
     typedef malValuePtr (ApplyFunc)(const String& name,
                                     malValueIter argsBegin,
                                     malValueIter argsEnd);
-
-    malBuiltIn(const String& name, ApplyFunc* handler)
-    : m_name(name), m_handler(handler) { }
-
-    malBuiltIn(const malBuiltIn& that, malValuePtr meta)
-    : malApplicable(meta), m_name(that.m_name), m_handler(that.m_handler) { }
-
-    virtual malValuePtr apply(malValueIter argsBegin,
-                              malValueIter argsEnd) const;
-
-    virtual String print(bool readably) const {
-        return STRF("#builtin-function(%s)", m_name.c_str());
-    }
-
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return this == rhs; // these are singletons
-    }
-
-    String name() const { return m_name; }
-
-    WITH_META(malBuiltIn);
-
+    malBuiltIn(const String&name, ApplyFunc* handler, malValuePtr meta = NULL);
+    malValuePtr apply(malValueIter argsBegin,
+                      malValueIter argsEnd) const override;
+    String print(bool readably) const override;
+    String name() const;
+    malValuePtr doWithMeta(malValuePtr meta) const override;
 private:
     const String m_name;
     ApplyFunc* m_handler;
@@ -280,28 +184,19 @@ class malLambda : public malApplicable {
 public:
     typedef std::function<malValuePtr(malValueIter, malValueIter)> ApplyFunc;
     malLambda(ApplyFunc apply, const StringVec& bindings, malValuePtr body,
-              malEnvPtr env);
-    malLambda(const malLambda& that, malValuePtr meta);
-    malLambda(const malLambda& that, bool isMacro);
+              malEnvPtr env, bool isMacro = false, malValuePtr meta = NULL);
+    malValuePtr asMacro() const;
 
-    virtual malValuePtr apply(malValueIter argsBegin,
-                              malValueIter argsEnd) const;
+    malValuePtr apply(malValueIter argsBegin,
+                      malValueIter argsEnd) const override;
 
     StringVec getBindings() const;
-    malValuePtr getBody() const { return m_body; }
+    malValuePtr getBody() const;
     malEnvPtr getEnv() const;
 
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return this == rhs; // do we need to do a deep inspection?
-    }
-
-    virtual String print(bool readably) const {
-        return STRF("#user-%s(%p)", m_isMacro ? "macro" : "function", this);
-    }
-
-    bool isMacro() const { return m_isMacro; }
-
-    virtual malValuePtr doWithMeta(malValuePtr meta) const;
+    String print(bool readably) const override;
+    bool isMacro() const;
+    malValuePtr doWithMeta(malValuePtr meta) const override;
 
 private:
     const ApplyFunc   m_apply;
@@ -313,23 +208,10 @@ private:
 
 class malAtom : public malValue {
 public:
-    malAtom(malValuePtr value) : m_value(value) { }
-    malAtom(const malAtom& that, malValuePtr meta)
-        : malValue(meta), m_value(that.m_value) { }
-
-    virtual bool doIsEqualTo(const malValue* rhs) const {
-        return this->m_value->isEqualTo(rhs);
-    }
-
-    virtual String print(bool readably) const {
-        return "(atom " + m_value->print(readably) + ")";
-    };
-
-    malValuePtr deref() const { return m_value; }
-
-    malValuePtr reset(malValuePtr value) { return m_value = value; }
-
-    WITH_META(malAtom);
+    malAtom(malValuePtr value);
+    String print(bool readably) const override;
+    malValuePtr deref() const;
+    malValuePtr reset(malValuePtr value);
 
 private:
     malValuePtr m_value;
@@ -340,8 +222,8 @@ namespace mal {
     malValuePtr boolean(bool value);
     malValuePtr builtin(const String& name, malBuiltIn::ApplyFunc handler);
     malValuePtr falseValue();
-    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd);
-    malValuePtr hash(const malHash::Map& map);
+    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd,
+                     const String& context);
     malValuePtr integer(int64_t value);
     malValuePtr integer(const String& token);
     malValuePtr keyword(const String& token);
@@ -349,7 +231,7 @@ namespace mal {
                        malValuePtr, malEnvPtr);
     malValuePtr list(malValueVec* items);
     malValuePtr list(malValueIter begin, malValueIter end);
-    malValuePtr list(malValuePtr a);
+    malValuePtr list();
     malValuePtr list(malValuePtr a, malValuePtr b);
     malValuePtr list(malValuePtr a, malValuePtr b, malValuePtr c);
     malValuePtr macro(const malLambda& lambda);
@@ -357,7 +239,6 @@ namespace mal {
     malValuePtr string(const String& token);
     malValuePtr symbol(const String& token);
     malValuePtr trueValue();
-    malValuePtr vector(malValueVec* items);
     malValuePtr vector(malValueIter begin, malValueIter end);
 };
 

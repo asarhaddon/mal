@@ -3,10 +3,6 @@
 #include "Types.h"
 #include "Validation.h"
 
-#include <algorithm>
-#include <memory>
-#include <typeinfo>
-
 // make CPPFLAGS=-DDEBUG_OBJECT_LIFETIMES
 #if DEBUG_OBJECT_LIFETIMES
 static size_t allocs = 0;
@@ -50,13 +46,9 @@ namespace mal {
         return malValuePtr(c);
     };
 
-
-    malValuePtr hash(const malHash::Map& map) {
-        return malValuePtr(new malHash(map));
-    }
-
-    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd) {
-        return malValuePtr(new malHash(argsBegin, argsEnd));
+    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd,
+                     const String& context) {
+        return malValuePtr(new malHash(argsBegin, argsEnd, context));
     }
 
     malValuePtr integer(int64_t value) {
@@ -77,37 +69,32 @@ namespace mal {
         return malValuePtr(new malLambda(apply, bindings, body, env));
     }
 
-    malValuePtr list(malValueVec* items) {
-        return malValuePtr(new malList(items));
-    };
-
     malValuePtr list(malValueIter begin, malValueIter end) {
         return malValuePtr(new malList(begin, end));
     };
 
-    malValuePtr list(malValuePtr a) {
-        malValueVec* items = new malValueVec(1);
-        items->at(0) = a;
-        return malValuePtr(new malList(items));
+    malValuePtr list() {
+        static malValuePtr c = malValuePtr(new malList());
+        return malValuePtr(c);
     }
 
     malValuePtr list(malValuePtr a, malValuePtr b) {
-        malValueVec* items = new malValueVec(2);
-        items->at(0) = a;
-        items->at(1) = b;
-        return malValuePtr(new malList(items));
+        auto items = new malList();
+        items->push_back(a);
+        items->push_back(b);
+        return malValuePtr(items);
     }
 
     malValuePtr list(malValuePtr a, malValuePtr b, malValuePtr c) {
-        malValueVec* items = new malValueVec(3);
-        items->at(0) = a;
-        items->at(1) = b;
-        items->at(2) = c;
-        return malValuePtr(new malList(items));
+        auto items = new malList();
+        items->push_back(a);
+        items->push_back(b);
+        items->push_back(c);
+        return malValuePtr(items);
     }
 
     malValuePtr macro(const malLambda& lambda) {
-        return malValuePtr(new malLambda(lambda, true));
+        return lambda.asMacro();
     };
 
     malValuePtr nilValue() {
@@ -128,14 +115,21 @@ namespace mal {
         return malValuePtr(c);
     };
 
-    malValuePtr vector(malValueVec* items) {
-        return malValuePtr(new malVector(items));
-    };
-
     malValuePtr vector(malValueIter begin, malValueIter end) {
         return malValuePtr(new malVector(begin, end));
     };
 };
+
+malAtom::malAtom(malValuePtr value) : m_value(value) { }
+malValuePtr malAtom::deref() const { return m_value; }
+malValuePtr malAtom::reset(malValuePtr value) { return m_value = value; }
+String malAtom::print(bool readably) const
+{
+    return STRF("(atom %s)", m_value->print(readably).c_str());
+}
+
+malBuiltIn::malBuiltIn(const String&name, ApplyFunc* apply, malValuePtr meta)
+  : malApplicable(meta), m_name(name), m_handler(apply) { }
 
 malValuePtr malBuiltIn::apply(malValueIter argsBegin,
                               malValueIter argsEnd) const
@@ -143,46 +137,60 @@ malValuePtr malBuiltIn::apply(malValueIter argsBegin,
     return m_handler(m_name, argsBegin, argsEnd);
 }
 
-static String makeHashKey(malValuePtr key)
+malValuePtr malBuiltIn::doWithMeta(malValuePtr meta) const
+{
+    return malValuePtr(new malBuiltIn(m_name, m_handler, meta));
+}
+String malBuiltIn::name() const { return m_name; }
+String malBuiltIn::print(bool) const
+{
+    return STRF("#builtin-function(%s)", m_name.c_str());
+}
+
+malConstant::malConstant(String name) : m_name(name) { }
+bool malConstant::doIsEqualTo(const malValue* rhs) const
+{
+    return this == rhs; // these are singletons
+}
+String malConstant::print(bool) const { return m_name; }
+
+bool malHash::malKeyEqual::operator()(const malValuePtr& lhs,
+                                      const malValuePtr& rhs) const
+{
+    return lhs->doIsEqualTo(rhs.ptr());
+}
+
+size_t malHash::malKeyHash::operator()(const malValuePtr& key) const
 {
     if (const malString* skey = DYNAMIC_CAST(malString, key)) {
-        return skey->print(true);
+        return std::hash<String>{}(skey->print(true));
     }
     else if (const malKeyword* kkey = DYNAMIC_CAST(malKeyword, key)) {
-        return kkey->print(true);
+        return std::hash<String>{}(kkey->print(true));
     }
     MAL_FAIL("%s is not a string or keyword", key->print(true).c_str());
 }
 
-static malHash::Map addToMap(malHash::Map& map,
-    malValueIter argsBegin, malValueIter argsEnd)
+void malHash::addToMap(malValueIter argsBegin, malValueIter argsEnd,
+                       const String& context)
 {
     // This is intended to be called with pre-evaluated arguments.
+    checkArgsEven(context.c_str(), std::distance(argsBegin, argsEnd));
     for (auto it = argsBegin; it != argsEnd; ++it) {
-        String key = makeHashKey(*it++);
-        map[key] = *it;
+        auto key = *it++;
+        m_map[key] = *it;
     }
-
-    return map;
 }
 
-static malHash::Map createMap(malValueIter argsBegin, malValueIter argsEnd)
+malHash::malHash() { }
+malHash::malHash(malValueIter argsBegin, malValueIter argsEnd,
+                 const String& context)
 {
-    MAL_CHECK(std::distance(argsBegin, argsEnd) % 2 == 0,
-            "hash-map requires an even-sized list");
-
-    malHash::Map map;
-    return addToMap(map, argsBegin, argsEnd);
+    addToMap(argsBegin, argsEnd, context);
 }
-
-malHash::malHash(malValueIter argsBegin, malValueIter argsEnd)
-: m_map(createMap(argsBegin, argsEnd))
-{
-
-}
-
-malHash::malHash(const malHash::Map& map)
-: m_map(map)
+malHash::malHash(const Map &map, malValuePtr meta)
+: malValue(meta)
+, m_map(map)
 {
 
 }
@@ -190,68 +198,64 @@ malHash::malHash(const malHash::Map& map)
 malValuePtr
 malHash::assoc(malValueIter argsBegin, malValueIter argsEnd) const
 {
-    MAL_CHECK(std::distance(argsBegin, argsEnd) % 2 == 0,
-            "assoc requires an even-sized list");
-
-    malHash::Map map(m_map);
-    return mal::hash(addToMap(map, argsBegin, argsEnd));
+    auto map = new malHash(m_map);
+    map->addToMap(argsBegin, argsEnd, "assoc");
+    return malValuePtr(map);
 }
 
 bool malHash::contains(malValuePtr key) const
 {
-    auto it = m_map.find(makeHashKey(key));
+    auto it = m_map.find(key);
     return it != m_map.end();
 }
 
 malValuePtr
 malHash::dissoc(malValueIter argsBegin, malValueIter argsEnd) const
 {
-    malHash::Map map(m_map);
+    auto map = new malHash(m_map);
     for (auto it = argsBegin; it != argsEnd; ++it) {
-        String key = makeHashKey(*it);
-        map.erase(key);
+        auto key = *it;
+        map->m_map.erase(key);
     }
-    return mal::hash(map);
+    return malValuePtr(map);
+}
+
+malValuePtr malHash::doWithMeta(malValuePtr meta) const
+{
+    return malValuePtr(new malHash(m_map, meta));
 }
 
 malValuePtr malHash::fmap(std::function<malValuePtr(malValuePtr)> f) const
 {
-    malHash::Map map;
+    auto map = new malHash();
     for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
-        map[it->first] = f(it->second);
+        map->m_map[it->first] = f(it->second);
     }
-    return mal::hash(map);
+    return malValuePtr(map);
 }
 
 malValuePtr malHash::get(malValuePtr key) const
 {
-    auto it = m_map.find(makeHashKey(key));
+    auto it = m_map.find(key);
     return it == m_map.end() ? mal::nilValue() : it->second;
 }
 
 malValuePtr malHash::keys() const
 {
-    malValueVec* keys = new malValueVec();
-    keys->reserve(m_map.size());
+    auto keys = new malList();
     for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
-        if (it->first[0] == '"') {
-            keys->push_back(mal::string(unescape(it->first)));
-        }
-        else {
-            keys->push_back(mal::keyword(it->first));
-        }
+        keys->push_back(it->first);
     }
-    return mal::list(keys);
+    return malValuePtr(keys);
 }
 
 malValuePtr malHash::values() const
 {
-    malValueVec* keys = new malValueVec();
-    keys->reserve(m_map.size());
+    auto keys = new malList();
     for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
         keys->push_back(it->second);
     }
-    return mal::list(keys);
+    return malValuePtr(keys);
 }
 
 String malHash::print(bool readably) const
@@ -260,11 +264,12 @@ String malHash::print(bool readably) const
 
     auto it = m_map.begin(), end = m_map.end();
     if (it != end) {
-        s += it->first + " " + it->second->print(readably);
+        s += it->first->print(readably) + " " + it->second->print(readably);
         ++it;
     }
     for ( ; it != end; ++it) {
-        s += " " + it->first + " " + it->second->print(readably);
+        s += " " + it->first->print(readably)
+          + " " + it->second->print(readably);
     }
 
     return s + "}";
@@ -272,7 +277,11 @@ String malHash::print(bool readably) const
 
 bool malHash::doIsEqualTo(const malValue* rhs) const
 {
-    const malHash::Map& r_map = static_cast<const malHash*>(rhs)->m_map;
+    auto r = dynamic_cast<const malHash*>(rhs);
+    if (!r) {
+        return false;
+    }
+    const malHash::Map& r_map = r->m_map;
     if (m_map.size() != r_map.size()) {
         return false;
     }
@@ -280,45 +289,45 @@ bool malHash::doIsEqualTo(const malValue* rhs) const
     for (auto it0 = m_map.begin(), end0 = m_map.end(), it1 = r_map.begin();
          it0 != end0; ++it0, ++it1) {
 
-        if (it0->first != it1->first) {
+        if (!it0->first->doIsEqualTo(it1->first.ptr())) {
             return false;
         }
-        if (!it0->second->isEqualTo(it1->second.ptr())) {
+        if (!it0->second->doIsEqualTo(it1->second.ptr())) {
             return false;
         }
     }
     return true;
 }
 
+malInteger::malInteger(int64_t value) : m_value(value) { }
+bool malInteger::doIsEqualTo(const malValue* rhs) const
+{
+    auto r = dynamic_cast<const malInteger*>(rhs);
+    return r && (m_value == r->m_value);
+}
+String malInteger::print(bool) const { return std::to_string(m_value); }
+int64_t malInteger::value() const { return m_value; }
+
+malStringBase::malStringBase(const String& token) : m_value(token) { }
+String malStringBase::print(bool) const { return m_value; }
+String malStringBase::value() const { return m_value; }
+
+malKeyword::malKeyword(const String& token) : malStringBase(token) { }
+bool malKeyword::doIsEqualTo(const malValue* rhs) const
+{
+    auto r = dynamic_cast<const malKeyword*>(rhs);
+    return r && (value() == r->value());
+}
+
 malLambda::malLambda(ApplyFunc apply,
                      const StringVec& bindings,
-                     malValuePtr body, malEnvPtr env)
-: m_apply(apply)
+                     malValuePtr body, malEnvPtr env,
+                     bool isMacro,  malValuePtr meta)
+: malApplicable(meta)
+, m_apply(apply)
 , m_bindings(bindings)
 , m_body(body)
 , m_env(env)
-, m_isMacro(false)
-{
-
-}
-
-malLambda::malLambda(const malLambda& that, malValuePtr meta)
-: malApplicable(meta)
-, m_apply(that.m_apply)
-, m_bindings(that.m_bindings)
-, m_body(that.m_body)
-, m_env(that.m_env)
-, m_isMacro(that.m_isMacro)
-{
-
-}
-
-malLambda::malLambda(const malLambda& that, bool isMacro)
-: malApplicable(that.m_meta)
-, m_apply(that.m_apply)
-, m_bindings(that.m_bindings)
-, m_body(that.m_body)
-, m_env(that.m_env)
 , m_isMacro(isMacro)
 {
 
@@ -332,24 +341,45 @@ malValuePtr malLambda::apply(malValueIter argsBegin,
 
 StringVec malLambda::getBindings() const { return m_bindings; }
 
+malValuePtr malLambda::asMacro() const
+{
+    return malValuePtr(new malLambda(m_apply, m_bindings, m_body, m_env,
+                                     true));
+}
+
 malValuePtr malLambda::doWithMeta(malValuePtr meta) const
 {
-    return new malLambda(*this, meta);
+    return malValuePtr(new malLambda(m_apply, m_bindings, m_body, m_env,
+                                     m_isMacro, meta));
 }
 
 malEnvPtr malLambda::getEnv() const { return m_env; }
+malValuePtr malLambda::getBody() const { return m_body; }
+bool malLambda::isMacro() const { return m_isMacro; }
+String malLambda::print(bool) const
+{
+    return STRF("#user-%s(%p)", m_isMacro ? "macro" : "function", this);
+}
 
+malList::malList() { }
+malList::malList(malValueIter begin, malValueIter end, malValuePtr meta)
+: malSequence(begin, end, meta) { }
 malValuePtr malList::conj(malValueIter argsBegin,
                           malValueIter argsEnd) const
 {
-    int oldItemCount = std::distance(begin(), end());
-    int newItemCount = std::distance(argsBegin, argsEnd);
+    auto items = new malList();
+    while (argsEnd-- != argsBegin) {
+        items->push_back(*argsEnd);
+    }
+    for (auto const &x : *this) {
+        items->push_back(x);
+    }
 
-    malValueVec* items = new malValueVec(oldItemCount + newItemCount);
-    std::reverse_copy(argsBegin, argsEnd, items->begin());
-    std::copy(begin(), end(), items->begin() + newItemCount);
-
-    return mal::list(items);
+    return malValuePtr(items);
+}
+malValuePtr malList::doWithMeta(malValuePtr meta) const
+{
+    return malValuePtr(new malList(begin(), end(), meta));
 }
 
 String malList::print(bool readably) const
@@ -372,14 +402,10 @@ malValue::~malValue()
 #endif
 }
 
-bool malValue::isEqualTo(const malValue* rhs) const
+bool malValue::doIsEqualTo(const malValue*) const { return false; }
+malValuePtr malValue::doWithMeta(malValuePtr) const
 {
-    // Special-case. Vectors and Lists can be compared.
-    bool matchingTypes = (typeid(*this) == typeid(*rhs)) ||
-        (dynamic_cast<const malSequence*>(this) &&
-         dynamic_cast<const malSequence*>(rhs));
-
-    return matchingTypes && doIsEqualTo(rhs);
+    MAL_FAIL("cannot add metadata to %s", print(true).c_str());
 }
 
 bool malValue::isTrue() const
@@ -393,52 +419,41 @@ malValuePtr malValue::meta() const
     return m_meta.ptr() == NULL ? mal::nilValue() : m_meta;
 }
 
-malValuePtr malValue::withMeta(malValuePtr meta) const
-{
-    return doWithMeta(meta);
-}
-
-malSequence::malSequence(malValueVec* items)
-: m_items(items)
+malSequence::malSequence()
 {
 
 }
-
-malSequence::malSequence(malValueIter begin, malValueIter end)
-: m_items(new malValueVec(begin, end))
-{
-
-}
-
-malSequence::malSequence(const malSequence& that, malValuePtr meta)
+malSequence::malSequence(malValueIter begin, malValueIter end,
+                         malValuePtr meta)
 : malValue(meta)
-, m_items(new malValueVec(*(that.m_items)))
+, m_items(begin, end)
 {
 
 }
-
-malSequence::~malSequence()
-{
-    delete m_items;
-}
+malValueIter malSequence::begin() const { return m_items.begin(); }
+int malSequence::count() const { return m_items.size(); }
 
 bool malSequence::doIsEqualTo(const malValue* rhs) const
 {
-    const malSequence* rhsSeq = static_cast<const malSequence*>(rhs);
+    const malSequence* rhsSeq = dynamic_cast<const malSequence*>(rhs);
+    if (!rhsSeq) {
+        return false;
+    }
     if (count() != rhsSeq->count()) {
         return false;
     }
 
-    for (malValueIter it0 = m_items->begin(),
+    for (malValueIter it0 = m_items.begin(),
                       it1 = rhsSeq->begin(),
-                      end = m_items->end(); it0 != end; ++it0, ++it1) {
+                      end = m_items.end(); it0 != end; ++it0, ++it1) {
 
-        if (! (*it0)->isEqualTo((*it1).ptr())) {
+        if (!(*it0)->doIsEqualTo((*it1).ptr())) {
             return false;
         }
     }
     return true;
 }
+malValueIter malSequence::end() const { return m_items.end(); }
 
 malValuePtr malSequence::first() const
 {
@@ -462,6 +477,11 @@ String printValues(malValueIter begin, malValueIter end,
 
     return str;
 }
+bool malSequence::isEmpty() const { return m_items.empty(); }
+malValuePtr malSequence::item(int index) const { return m_items.at(index); }
+void malSequence::push_back(malValuePtr newItem) {
+    m_items.push_back(newItem);
+}
 
 malValuePtr malSequence::rest() const
 {
@@ -469,36 +489,50 @@ malValuePtr malSequence::rest() const
     return mal::list(start, end());
 }
 
-String malString::escapedValue() const
+malString::malString(const String& token) : malStringBase(token) { }
+bool malString::doIsEqualTo(const malValue* rhs) const
 {
-    return escape(value());
+    auto r = dynamic_cast<const malString*>(rhs);
+    return r && (value() == r->value());
 }
 
 String malString::print(bool readably) const
 {
-    return readably ? escapedValue() : value();
+    return readably ? escape(value()) : value();
 }
 
+malSymbol::malSymbol(const String& token) : malStringBase(token) { }
+bool malSymbol::doIsEqualTo(const malValue* rhs) const
+{
+    auto r = dynamic_cast<const malSymbol*>(rhs);
+    return r && (value() == r->value());
+}
+
+malVector::malVector() { }
+malVector::malVector(malValueIter begin, malValueIter end, malValuePtr meta)
+  : malSequence(begin, end, meta) { }
 malValuePtr malVector::conj(malValueIter argsBegin,
                             malValueIter argsEnd) const
 {
-    int oldItemCount = std::distance(begin(), end());
-    int newItemCount = std::distance(argsBegin, argsEnd);
-
-    malValueVec* items = new malValueVec(oldItemCount + newItemCount);
-    std::copy(begin(), end(), items->begin());
-    std::copy(argsBegin, argsEnd, items->begin() + oldItemCount);
-
-    return mal::vector(items);
+    auto items = new malVector(begin(), end());
+    for ( ; argsBegin != argsEnd; ++argsBegin) {
+        items->push_back(*argsBegin);
+    }
+    return malValuePtr(items);
 }
 
 malValuePtr malVector::fmap(std::function<malValuePtr(malValuePtr)> f) const
 {
-    malValueVec* items = new malValueVec;;
+    auto items = new malVector();
     for (const auto &x : *this) {
         items->push_back(f(x));
     }
-    return mal::vector(items);
+    return malValuePtr(items);
+}
+
+malValuePtr malVector::doWithMeta(malValuePtr meta) const
+{
+    return new malVector(begin(), end(), meta);
 }
 
 String malVector::print(bool readably) const

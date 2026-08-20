@@ -142,7 +142,7 @@ BUILTIN("=")
     const malValue* lhs = (*argsBegin++).ptr();
     const malValue* rhs = (*argsBegin++).ptr();
 
-    return mal::boolean(lhs->isEqualTo(rhs));
+    return mal::boolean(lhs->doIsEqualTo(rhs));
 }
 
 BUILTIN("apply")
@@ -179,21 +179,15 @@ BUILTIN("atom")
 
 BUILTIN("concat")
 {
-    int count = 0;
+    auto items = new malList();
     for (auto it = argsBegin; it != argsEnd; ++it) {
         const malSequence* seq = VALUE_CAST(name, malSequence, *it);
-        count += seq->count();
+        for (const auto &x : *seq) {
+            items->push_back(x);
+        }
     }
 
-    malValueVec* items = new malValueVec(count);
-    int offset = 0;
-    for (auto it = argsBegin; it != argsEnd; ++it) {
-        const malSequence* seq = STATIC_CAST(malSequence, *it);
-        std::copy(seq->begin(), seq->end(), items->begin() + offset);
-        offset += seq->count();
-    }
-
-    return mal::list(items);
+    return malValuePtr(items);
 }
 
 BUILTIN("conj")
@@ -210,11 +204,13 @@ BUILTIN("cons")
     malValuePtr first = *argsBegin++;
     ARG(malSequence, rest);
 
-    malValueVec* items = new malValueVec(1 + rest->count());
-    items->at(0) = first;
-    std::copy(rest->begin(), rest->end(), items->begin() + 1);
+    auto items = new malList();
+    items->push_back(first);
+    for (const auto &x : *rest) {
+        items->push_back(x);
+    }
 
-    return mal::list(items);
+    return malValuePtr(items);
 }
 
 BUILTIN("contains?")
@@ -303,7 +299,7 @@ BUILTIN("get")
 
 BUILTIN("hash-map")
 {
-    return mal::hash(argsBegin, argsEnd);
+    return mal::hash(argsBegin, argsEnd, name);
 }
 
 BUILTIN("keys")
@@ -346,13 +342,13 @@ BUILTIN("map")
     ARG(malSequence, source);
 
     const int length = source->count();
-    malValueVec* items = new malValueVec(length);
+    auto items = new malList();
     auto it = source->begin();
     for (int i = 0; i < length; i++) {
-      items->at(i) = op->apply(it+i, it+i+1);
+      items->push_back(op->apply(it+i, it+i+1));
     }
 
-    return  mal::list(items);
+    return malValuePtr(items);
 }
 
 BUILTIN("meta")
@@ -426,7 +422,7 @@ BUILTIN("rest")
 {
     CHECK_ARGS_IS(1);
     if (*argsBegin == mal::nilValue()) {
-        return mal::list(new malValueVec(0));
+        return mal::list();
     }
     ARG(malSequence, seq);
     return seq->rest();
@@ -449,11 +445,11 @@ BUILTIN("seq")
         if (length == 0)
             return mal::nilValue();
 
-        malValueVec* items = new malValueVec(length);
+        auto items = new malList();
         for (int i = 0; i < length; i++) {
-            (*items)[i] = mal::string(str.substr(i, 1));
+            items->push_back(mal::string(str.substr(i, 1)));
         }
-        return mal::list(items);
+        return malValuePtr(items);
     }
     MAL_FAIL("%s is not a string or sequence", arg->print(true).c_str());
 }
@@ -549,7 +545,7 @@ BUILTIN("with-meta")
     CHECK_ARGS_IS(2);
     malValuePtr obj  = *argsBegin++;
     malValuePtr meta = *argsBegin++;
-    return obj->withMeta(meta);
+    return obj->doWithMeta(meta);
 }
 
 void installCore() {
