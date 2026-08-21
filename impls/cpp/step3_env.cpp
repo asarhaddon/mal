@@ -78,19 +78,19 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 
             if (special == "def!") {
                 checkArgsIs("def!", 2, argCount);
-                const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
+                const malSymbol* id = VALUE_CAST("def!", malSymbol, list->item(1));
                 return env->set(id->value(), EVAL(list->item(2), env));
             }
 
             if (special == "let*") {
                 checkArgsIs("let*", 2, argCount);
                 const malSequence* bindings =
-                    VALUE_CAST(malSequence, list->item(1));
+                    VALUE_CAST("let*", malSequence, list->item(1));
                 int count = checkArgsEven("let*", bindings->count());
                 malEnvPtr inner(new malEnv(env));
                 for (int i = 0; i < count; i += 2) {
                     const malSymbol* var =
-                        VALUE_CAST(malSymbol, bindings->item(i));
+                        VALUE_CAST("let*", malSymbol, bindings->item(i));
                     inner->set(var->value(), EVAL(bindings->item(i+1), inner));
                 }
                 return EVAL(list->item(2), inner);
@@ -98,7 +98,8 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         }
 
         // Now we're left with the case of a regular list to be evaluated.
-        auto op = VALUE_CAST(malApplicable, EVAL(list->item(0), env));
+        auto op = VALUE_CAST("EVAL apply phase", malApplicable,
+                             EVAL(list->item(0), env));
         malValueVec items;
         for (auto i = list->begin() + 1, e = list->end(); i != e; ++i) {
             items.push_back(EVAL(*i, env));
@@ -111,7 +112,7 @@ String PRINT(malValuePtr ast)
     return ast->print(true);
 }
 
-#define ARG(type, name) type* name = VALUE_CAST(type, *argsBegin++)
+#define ARG(type, var) type* var = VALUE_CAST(name, type, *argsBegin++)
 
 #define CHECK_ARGS_IS(expected) \
     checkArgsIs(name.c_str(), expected, std::distance(argsBegin, argsEnd))

@@ -78,7 +78,8 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         // From here on down we are evaluating a non-empty list.
 
         // Now we're left with the case of a regular list to be evaluated.
-        auto op = VALUE_CAST(malApplicable, EVAL(list->item(0), env));
+        auto op = VALUE_CAST("EVAL apply phase", malApplicable,
+                             EVAL(list->item(0), env));
         malValueVec items;
         for (auto i = list->begin() + 1, e = list->end(); i != e; ++i) {
             items.push_back(EVAL(*i, env));
@@ -91,7 +92,7 @@ String PRINT(malValuePtr ast)
     return ast->print(true);
 }
 
-#define ARG(type, name) type* name = VALUE_CAST(type, *argsBegin++)
+#define ARG(type, var) type* var = VALUE_CAST(name, type, *argsBegin++)
 
 #define CHECK_ARGS_IS(expected) \
     checkArgsIs(name.c_str(), expected, std::distance(argsBegin, argsEnd))

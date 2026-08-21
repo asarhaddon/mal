@@ -97,16 +97,16 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 
             if (special == "def!") {
                 checkArgsIs("def!", 2, argCount);
-                const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
+                const malSymbol* id = VALUE_CAST("def!", malSymbol, list->item(1));
                 return env->set(id->value(), EVAL(list->item(2), env));
             }
 
             if (special == "defmacro!") {
                 checkArgsIs("defmacro!", 2, argCount);
 
-                const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
+                const malSymbol* id = VALUE_CAST("defmacro!", malSymbol, list->item(1));
                 malValuePtr body = EVAL(list->item(2), env);
-                const malLambda* lambda = VALUE_CAST(malLambda, body);
+                const malLambda* lambda = VALUE_CAST("defmacro!", malLambda, body);
                 return env->set(id->value(), mal::macro(*lambda));
             }
 
@@ -124,11 +124,11 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 checkArgsIs("fn*", 2, argCount);
 
                 const malSequence* bindings =
-                    VALUE_CAST(malSequence, list->item(1));
+                    VALUE_CAST("fn*", malSequence, list->item(1));
                 StringVec params;
                 for (int i = 0; i < bindings->count(); i++) {
                     const malSymbol* sym =
-                        VALUE_CAST(malSymbol, bindings->item(i));
+                        VALUE_CAST("fn*", malSymbol, bindings->item(i));
                     params.push_back(sym->value());
                 }
 
@@ -153,12 +153,12 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
             if (special == "let*") {
                 checkArgsIs("let*", 2, argCount);
                 const malSequence* bindings =
-                    VALUE_CAST(malSequence, list->item(1));
+                    VALUE_CAST("let*", malSequence, list->item(1));
                 int count = checkArgsEven("let*", bindings->count());
                 malEnvPtr inner(new malEnv(env));
                 for (int i = 0; i < count; i += 2) {
                     const malSymbol* var =
-                        VALUE_CAST(malSymbol, bindings->item(i));
+                        VALUE_CAST("let*", malSymbol, bindings->item(i));
                     inner->set(var->value(), EVAL(bindings->item(i+1), inner));
                 }
                 ast = list->item(2);
@@ -185,10 +185,10 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                     continue; // TCO
                 }
                 checkArgsIs("try*", 2, argCount);
-                const malList* catchBlock = VALUE_CAST(malList, list->item(2));
+                const malList* catchBlock = VALUE_CAST("try*", malList, list->item(2));
 
                 checkArgsIs("catch*", 2, catchBlock->count() - 1);
-                MAL_CHECK(VALUE_CAST(malSymbol,
+                MAL_CHECK(VALUE_CAST("catch*", malSymbol,
                     catchBlock->item(0))->value() == "catch*",
                     "catch block must begin with catch*");
 
@@ -196,7 +196,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 // that the catch block is valid always, not just in case of
                 // an exception.
                 const malSymbol* excSym =
-                    VALUE_CAST(malSymbol, catchBlock->item(1));
+                    VALUE_CAST("catch*", malSymbol, catchBlock->item(1));
 
                 try {
                     return EVAL(tryBody, env);
@@ -211,7 +211,8 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         }
 
         // Now we're left with the case of a regular list to be evaluated.
-        auto op = VALUE_CAST(malApplicable, EVAL(list->item(0), env));
+        auto op = VALUE_CAST("EVAL apply phase", malApplicable,
+                             EVAL(list->item(0), env));
         auto lambda = dynamic_cast<malLambda*>(op);
         if (lambda && lambda->isMacro()) {
             ast = lambda->apply(list->begin()+1, list->end());

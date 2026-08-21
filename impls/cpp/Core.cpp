@@ -35,7 +35,7 @@ bool addHandler(const String &name, malBuiltIn::ApplyFunc handler)
     return false;
 }
 
-#define ARG(type, name) type* name = VALUE_CAST(type, *argsBegin++)
+#define ARG(type, var) type* var = VALUE_CAST(name, type, *argsBegin++)
 
 #define FUNCNAME(uniq) builtIn ## uniq
 #define HRECNAME(uniq) handler ## uniq
@@ -155,7 +155,7 @@ BUILTIN("apply")
     malValueVec args(argsBegin, argsEnd-1);
 
     // Then append the argument as a list.
-    const malSequence* lastArg = VALUE_CAST(malSequence, *(argsEnd-1));
+    const malSequence* lastArg = VALUE_CAST(name, malSequence, *(argsEnd-1));
     for (int i = 0; i < lastArg->count(); i++) {
         args.push_back(lastArg->item(i));
     }
@@ -182,7 +182,7 @@ BUILTIN("concat")
 {
     int count = 0;
     for (auto it = argsBegin; it != argsEnd; ++it) {
-        const malSequence* seq = VALUE_CAST(malSequence, *it);
+        const malSequence* seq = VALUE_CAST(name, malSequence, *it);
         count += seq->count();
     }
 

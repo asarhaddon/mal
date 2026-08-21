@@ -13,15 +13,15 @@ static size_t allocs = 0;
 #endif
 
 template<class T>
-T* value_cast(malValuePtr obj, const char* typeName)
+T* value_cast(const String& context, malValuePtr obj, const char* typeName)
 {
     T* dest = dynamic_cast<T*>(obj.ptr());
-    MAL_CHECK(dest != NULL, "%s is not a %s",
+    MAL_CHECK(dest != NULL, "%s: %s is not a %s", context.c_str(),
               obj->print(true).c_str(), typeName);
     return dest;
 }
 #define INSTANTIATE_VALUE_CAST(T) \
-  template T* value_cast<T>(malValuePtr, const char*)
+  template T* value_cast<T>(const String&, malValuePtr, const char*)
 INSTANTIATE_VALUE_CAST(malApplicable);
 INSTANTIATE_VALUE_CAST(malAtom);
 INSTANTIATE_VALUE_CAST(malHash);

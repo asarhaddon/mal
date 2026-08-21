@@ -37,9 +37,9 @@ protected:
 };
 
 template<class T>
-T* value_cast(malValuePtr obj, const char* typeName);
+T* value_cast(const String& context, malValuePtr obj, const char* typeName);
 
-#define VALUE_CAST(Type, Value)    value_cast<Type>(Value, #Type)
+#define VALUE_CAST(context, Type, Value) value_cast<Type>(context, Value, #Type)
 #define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value).ptr()))
 #define STATIC_CAST(Type, Value)   (static_cast<Type*>((Value).ptr()))
 
