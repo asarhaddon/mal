@@ -3,7 +3,7 @@
 #include "String.h"
 
 #define MAL_CHECK(condition, ...)  \
-    if (!(condition)) { throw STRF(__VA_ARGS__); } else { }
+    if (condition) { } else throw mal::string(STRF(__VA_ARGS__));
 
 #define MAL_FAIL(...) MAL_CHECK(false, __VA_ARGS__)
 

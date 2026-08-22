@@ -1,3 +1,4 @@
+#include "Types.h"
 #include "Validation.h"
 
 int checkArgsIs(const char* name, int expected, int got)

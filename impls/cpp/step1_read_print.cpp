@@ -17,24 +17,20 @@ int main(int argc, char* argv[])
     String prompt = "user> ";
     String input;
     while (s_readLine_get(prompt, input)) {
-        String out;
-        try {
-            out = rep(input);
-        }
-        catch (malEmptyInputException&) {
-            continue; // no output
-        }
-        catch (String& s) {
-            out = s;
-        };
-        std::cout << out << "\n";
+        std::cout << rep(input) << "\n";
     }
     return 0;
 }
 
 static String rep(const String& input)
 {
-    return PRINT(EVAL(READ(input)));
+    try {
+        return PRINT(EVAL(READ(input)));
+    }
+    catch (malValuePtr& mv) {
+        std::cerr << "Error: " << PRINT(mv) << "\n";
+        return "";
+    }
 }
 
 malValuePtr READ(const String& input)

@@ -2,10 +2,7 @@
 
 #include "MAL.h"
 
-#include <exception>
 #include <map>
-
-class malEmptyInputException : public std::exception { };
 
 class malValue : public RefCounted {
 public:
@@ -31,12 +28,7 @@ protected:
 };
 
 template<class T>
-T* value_cast(malValuePtr obj, const char* typeName) {
-    T* dest = dynamic_cast<T*>(obj.ptr());
-    MAL_CHECK(dest != NULL, "%s is not a %s",
-              obj->print(true).c_str(), typeName);
-    return dest;
-}
+T* value_cast(malValuePtr obj, const char* typeName);
 
 #define VALUE_CAST(Type, Value)    value_cast<Type>(Value, #Type)
 #define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value).ptr()))

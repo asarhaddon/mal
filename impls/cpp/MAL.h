@@ -17,6 +17,5 @@ typedef RefCountedPtr<malEnv>     malEnvPtr;
 
 // step*.cpp
 extern malValuePtr EVAL(malValuePtr ast, malEnvPtr env);
-extern String rep(const String& input, malEnvPtr env);
 
 #endif // INCLUDE_MAL_H

@@ -12,9 +12,9 @@ malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
 static void installFunctions(malEnvPtr env);
 //  Installs functions, macros and constants implemented in MAL.
+String rep(const String& input, malEnvPtr env);
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[]);
-static String safeRep(const String& input, malEnvPtr env);
 static malValuePtr quasiquote(malValuePtr obj);
 
 const malEnvPtr replEnv(new malEnv);
@@ -28,32 +28,25 @@ int main(int argc, char* argv[])
     makeArgv(replEnv, argc - 2, argv + 2);
     if (argc > 1) {
         String filename = escape(argv[1]);
-        safeRep(STRF("(load-file %s)", filename.c_str()), replEnv);
+        rep(STRF("(load-file %s)", filename.c_str()), replEnv);
         return 0;
     }
     rep("(println (str \"Mal [\" *host-language* \"]\"))", replEnv);
     while (s_readLine_get(prompt, input)) {
-        String out = safeRep(input, replEnv);
-        if (out.length() > 0)
-            std::cout << out << "\n";
+        std::cout << rep(input, replEnv) << "\n";
     }
     return 0;
 }
 
-static String safeRep(const String& input, malEnvPtr env)
+String rep(const String& input, malEnvPtr env)
 {
     try {
-        return rep(input, env);
-    }
-    catch (malEmptyInputException&) {
-        return String();
+        return PRINT(EVAL(READ(input), env));
     }
     catch (malValuePtr& mv) {
-        return "Error: " + mv->print(true);
+        std::cerr << "Error: " << PRINT(mv) << "\n";
+        return "";
     }
-    catch (String& s) {
-        return "Error: " + s;
-    };
 }
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[])
@@ -63,11 +56,6 @@ static void makeArgv(malEnvPtr env, int argc, char* argv[])
         args->push_back(mal::string(argv[i]));
     }
     env->set("*ARGV*", mal::list(args));
-}
-
-String rep(const String& input, malEnvPtr env)
-{
-    return PRINT(EVAL(READ(input), env));
 }
 
 malValuePtr READ(const String& input)
@@ -194,29 +182,15 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 const malSymbol* excSym =
                     VALUE_CAST(malSymbol, catchBlock->item(1));
 
-                malValuePtr excVal;
-
                 try {
                     return EVAL(tryBody, env);
                 }
-                catch(String& s) {
-                    excVal = mal::string(s);
-                }
-                catch (malEmptyInputException&) {
-                    // Not an error, continue as if we got nil
-                    ast = mal::nilValue();
-                }
-                catch(malValuePtr& o) {
-                    excVal = o;
-                };
-
-                if (excVal) {
-                    // we got some exception
+                catch(malValuePtr& excVal) {
                     env = malEnvPtr(new malEnv(env));
                     env->set(excSym->value(), excVal);
                     ast = catchBlock->item(2);
+                    continue; // TCO
                 }
-                continue; // TCO
             }
         }
 

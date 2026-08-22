@@ -122,9 +122,7 @@ static malValuePtr processMacro(Tokeniser& tokeniser, const String& symbol);
 malValuePtr readStr(const String& input)
 {
     Tokeniser tokeniser(input);
-    if (tokeniser.eof()) {
-        throw malEmptyInputException();
-    }
+    MAL_CHECK(!tokeniser.eof(), "no MAL form in \"%s\"", input.c_str());
     return readForm(tokeniser);
 }
 

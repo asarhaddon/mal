@@ -11,6 +11,7 @@
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
 static void installFunctions(malEnvPtr env);
+String rep(const String& input, malEnvPtr env);
 
 const malEnvPtr replEnv(new malEnv);
 
@@ -21,24 +22,20 @@ int main(int argc, char* argv[])
     installCore();
     installFunctions(replEnv);
     while (s_readLine_get(prompt, input)) {
-        String out;
-        try {
-            out = rep(input, replEnv);
-        }
-        catch (malEmptyInputException&) {
-            continue; // no output
-        }
-        catch (String& s) {
-            out = s;
-        };
-        std::cout << out << "\n";
+        std::cout << rep(input, replEnv) << "\n";
     }
     return 0;
 }
 
 String rep(const String& input, malEnvPtr env)
 {
-    return PRINT(EVAL(READ(input), env));
+    try {
+        return PRINT(EVAL(READ(input), env));
+    }
+    catch (malValuePtr& mv) {
+        std::cerr << "Error: " << PRINT(mv) << "\n";
+        return "";
+    }
 }
 
 malValuePtr READ(const String& input)
