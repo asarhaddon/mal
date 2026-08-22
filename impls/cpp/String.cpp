@@ -1,8 +1,6 @@
 #include "String.h"
 
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 // Adapted from: http://stackoverflow.com/questions/2342162
@@ -25,13 +23,6 @@ String stringPrintf(const char* fmt, ...) {
             size *= 2;      // Guess at a larger size (OS specific)
     }
     return str;
-}
-
-String copyAndFree(char* mallocedString)
-{
-    String ret(mallocedString);
-    free(mallocedString);
-    return ret;
 }
 
 String escape(const String& in)
@@ -84,4 +75,3 @@ String unescape(const String& in)
     out.shrink_to_fit();
     return out;
 }
-

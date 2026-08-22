@@ -1,5 +1,6 @@
 #include "MAL.h"
 #include "Environment.h"
+#include "ReadLine.h"
 #include "StaticList.h"
 #include "Types.h"
 
@@ -395,7 +396,11 @@ BUILTIN("readline")
     CHECK_ARGS_IS(1);
     ARG(malString, str);
 
-    return readline(str->value());
+    String input;
+    if (s_readLine_get(str->value(), input)) {
+        return mal::string(input);
+    }
+    return mal::nilValue();
 }
 
 BUILTIN("reset!")

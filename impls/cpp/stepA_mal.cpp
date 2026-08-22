@@ -15,8 +15,6 @@ static void makeArgv(malEnvPtr env, int argc, char* argv[]);
 static String safeRep(const String& input, malEnvPtr env);
 static malValuePtr quasiquote(malValuePtr obj);
 
-static ReadLine s_readLine("~/.mal-history");
-
 static malEnvPtr replEnv(new malEnv);
 
 int main(int argc, char* argv[])
@@ -32,7 +30,7 @@ int main(int argc, char* argv[])
         return 0;
     }
     rep("(println (str \"Mal [\" *host-language* \"]\"))", replEnv);
-    while (s_readLine.get(prompt, input)) {
+    while (s_readLine_get(prompt, input)) {
         String out = safeRep(input, replEnv);
         if (out.length() > 0)
             std::cout << out << "\n";
@@ -304,14 +302,3 @@ static void installFunctions(malEnvPtr env) {
         rep(function, env);
     }
 }
-
-// Added to keep the linker happy at step A
-malValuePtr readline(const String& prompt)
-{
-    String input;
-    if (s_readLine.get(prompt, input)) {
-        return mal::string(input);
-    }
-    return mal::nilValue();
-}
-

@@ -1,32 +1,69 @@
+#include "Debug.h"
 #include "ReadLine.h"
-#include "String.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <readline/tilde.h>
 
-ReadLine::ReadLine(const String& historyFile)
-: m_historyPath(copyAndFree(tilde_expand(historyFile.c_str())))
+// make CPPFLAGS=-DDEBUG_READLINE
+
+char* historyPath = NULL;
+int newLines = 0;
+
+void finalize()
 {
-    read_history(m_historyPath.c_str());
+    int err = append_history(newLines, historyPath);
+    if (err == 0) {
+#if DEBUG_READLINE
+        TRACE("Written %d line(s) to '%s'\n", newLines, historyPath);
+#endif
+    }
+    else {
+        TRACE("Error %d while appending to '%s'\n", err, historyPath);
+    }
+    free(historyPath);
 }
 
-ReadLine::~ReadLine()
+void initialize()
 {
+    atexit(finalize);
+
+    historyPath = tilde_expand("~/.mal-history");
+
+    int e1 = read_history(historyPath);
+    if (e1 == 0) {
+#if DEBUG_READLINE
+        TRACE("Read '%s'\n", historyPath);
+#endif
+    }
+    else if (e1 == ENOENT) {
+        int e2 = write_history(historyPath);
+        if (e2 == 0) {
+#if DEBUG_READLINE
+            TRACE("Created '%s'\n", historyPath);
+#endif
+        }
+        else {
+            TRACE("Error %d while creating '%s'\n", e2, historyPath);
+        }
+    }
+    else {
+        TRACE("Error %d while reading '%s'\n", e1, historyPath);
+    }
 }
 
-bool ReadLine::get(const String& prompt, String& out)
+bool s_readLine_get(const String& prompt, String& out)
 {
+    if (historyPath == NULL) {
+        initialize();
+    }
+
     char *line = readline(prompt.c_str());
     if (line == NULL) {
         return false;
     }
     add_history(line); // Add input to in-memory history
-    append_history(1, m_historyPath.c_str());
+    ++newLines;
 
     out = line;
     free(line);

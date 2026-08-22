@@ -8,8 +8,6 @@
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
 
-static ReadLine s_readLine("~/.mal-history");
-
 static String rep(const String& input);
 static malValuePtr EVAL(malValuePtr ast);
 
@@ -17,7 +15,7 @@ int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    while (s_readLine.get(prompt, input)) {
+    while (s_readLine_get(prompt, input)) {
         String out;
         try {
             out = rep(input);
