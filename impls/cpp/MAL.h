@@ -19,7 +19,4 @@ typedef RefCountedPtr<malEnv>     malEnvPtr;
 extern malValuePtr EVAL(malValuePtr ast, malEnvPtr env);
 extern String rep(const String& input, malEnvPtr env);
 
-// Core.cpp
-extern void installCore(malEnvPtr env);
-
 #endif // INCLUDE_MAL_H

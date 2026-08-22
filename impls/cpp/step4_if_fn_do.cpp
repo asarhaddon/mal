@@ -1,5 +1,6 @@
 #include "MAL.h"
 
+#include "Core.h"
 #include "Environment.h"
 #include "Reader.h"
 #include "ReadLine.h"
@@ -11,13 +12,13 @@ malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
 static void installFunctions(malEnvPtr env);
 
-static malEnvPtr replEnv(new malEnv);
+const malEnvPtr replEnv(new malEnv);
 
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    installCore(replEnv);
+    installCore();
     installFunctions(replEnv);
     while (s_readLine_get(prompt, input)) {
         String out;
@@ -47,10 +48,6 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
-    if (!env) {
-        env = replEnv;
-    }
-
        const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
        if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
            std::cout << "EVAL: " << PRINT(ast) << "\n";

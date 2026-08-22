@@ -1,13 +1,13 @@
-#include "MAL.h"
-#include "Environment.h"
+#include "Core.h"
 #include "Reader.h"
 #include "ReadLine.h"
-#include "StaticList.h"
-#include "Types.h"
+#include "String.h"
+#include "Validation.h"
 
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #define CHECK_ARGS_IS(expected) \
     checkArgsIs(name.c_str(), expected, \
@@ -24,7 +24,16 @@
 static String printValues(malValueIter begin, malValueIter end,
                            const String& sep, bool readably);
 
-static StaticList<malBuiltIn*> handlers;
+std::vector<malBuiltIn*> handlers;
+// We want to populate this list without duplication of the function
+// names in the source (or source generation).
+// This trick relies on static variables.
+// The returned value is ignored, but void variables are forbidden.
+bool addHandler(const String &name, malBuiltIn::ApplyFunc handler)
+{
+    handlers.push_back(new malBuiltIn(name, handler));
+    return false;
+}
 
 #define ARG(type, name) type* name = VALUE_CAST(type, *argsBegin++)
 
@@ -32,8 +41,7 @@ static StaticList<malBuiltIn*> handlers;
 #define HRECNAME(uniq) handler ## uniq
 #define BUILTIN_DEF(uniq, symbol) \
     static malBuiltIn::ApplyFunc FUNCNAME(uniq); \
-    static StaticList<malBuiltIn*>::Node HRECNAME(uniq) \
-        (handlers, new malBuiltIn(symbol, FUNCNAME(uniq))); \
+    static bool HRECNAME(uniq) = addHandler(symbol, FUNCNAME(uniq)); \
     malValuePtr FUNCNAME(uniq)(const String& name, \
         malValueIter argsBegin, malValueIter argsEnd)
 
@@ -258,7 +266,7 @@ BUILTIN("empty?")
 BUILTIN("eval")
 {
     CHECK_ARGS_IS(1);
-    return EVAL(*argsBegin, NULL);
+    return EVAL(*argsBegin, replEnv);
 }
 
 BUILTIN("first")
@@ -539,10 +547,10 @@ BUILTIN("with-meta")
     return obj->withMeta(meta);
 }
 
-void installCore(malEnvPtr env) {
+void installCore() {
     for (auto it = handlers.begin(), end = handlers.end(); it != end; ++it) {
         malBuiltIn* handler = *it;
-        env->set(handler->name(), handler);
+        replEnv->set(handler->name(), handler);
     }
 }
 

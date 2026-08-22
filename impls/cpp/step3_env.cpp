@@ -12,11 +12,17 @@ String PRINT(malValuePtr ast);
 
 static malEnvPtr replEnv(new malEnv);
 
+static malBuiltIn::ApplyFunc
+    builtIn_add, builtIn_sub, builtIn_mul, builtIn_div;
+
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    installCore(replEnv);
+    replEnv->set("+", mal::builtin("+", &builtIn_add));
+    replEnv->set("-", mal::builtin("-", &builtIn_sub));
+    replEnv->set("*", mal::builtin("+", &builtIn_mul));
+    replEnv->set("/", mal::builtin("/", &builtIn_div));
     while (s_readLine_get(prompt, input)) {
         String out;
         try {
@@ -45,10 +51,6 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
-    if (!env) {
-        env = replEnv;
-    }
-
        const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
        if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
            std::cout << "EVAL: " << PRINT(ast) << "\n";
@@ -98,4 +100,53 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 String PRINT(malValuePtr ast)
 {
     return ast->print(true);
+}
+
+#define ARG(type, name) type* name = VALUE_CAST(type, *argsBegin++)
+
+#define CHECK_ARGS_IS(expected) \
+    checkArgsIs(name.c_str(), expected, std::distance(argsBegin, argsEnd))
+
+#define CHECK_ARGS_BETWEEN(min, max) \
+    checkArgsBetween(name.c_str(), min, max, std::distance(argsBegin, argsEnd))
+
+
+static malValuePtr builtIn_add(const String& name,
+    malValueIter argsBegin, malValueIter argsEnd)
+{
+        CHECK_ARGS_IS(2);
+        ARG(malInteger, lhs);
+        ARG(malInteger, rhs);
+        return mal::integer(lhs->value() + rhs->value());
+}
+
+static malValuePtr builtIn_sub(const String& name,
+    malValueIter argsBegin, malValueIter argsEnd)
+{
+        int argCount = CHECK_ARGS_BETWEEN(1, 2);
+        ARG(malInteger, lhs);
+        if (argCount == 1) {
+            return mal::integer(- lhs->value());
+        }
+        ARG(malInteger, rhs);
+        return mal::integer(lhs->value() - rhs->value());
+}
+
+static malValuePtr builtIn_mul(const String& name,
+    malValueIter argsBegin, malValueIter argsEnd)
+{
+        CHECK_ARGS_IS(2);
+        ARG(malInteger, lhs);
+        ARG(malInteger, rhs);
+        return mal::integer(lhs->value() * rhs->value());
+}
+
+static malValuePtr builtIn_div(const String& name,
+    malValueIter argsBegin, malValueIter argsEnd)
+{
+        CHECK_ARGS_IS(2);
+        ARG(malInteger, lhs);
+        ARG(malInteger, rhs);
+        MAL_CHECK(rhs->value() != 0, "Division by zero"); \
+        return mal::integer(lhs->value() / rhs->value());
 }

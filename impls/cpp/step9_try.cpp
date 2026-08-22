@@ -1,5 +1,6 @@
 #include "MAL.h"
 
+#include "Core.h"
 #include "Environment.h"
 #include "Reader.h"
 #include "ReadLine.h"
@@ -16,13 +17,13 @@ static void makeArgv(malEnvPtr env, int argc, char* argv[]);
 static String safeRep(const String& input, malEnvPtr env);
 static malValuePtr quasiquote(malValuePtr obj);
 
-static malEnvPtr replEnv(new malEnv);
+const malEnvPtr replEnv(new malEnv);
 
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    installCore(replEnv);
+    installCore();
     installFunctions(replEnv);
     makeArgv(replEnv, argc - 2, argv + 2);
     if (argc > 1) {
@@ -75,9 +76,6 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
-    if (!env) {
-        env = replEnv;
-    }
     while (1) {
 
        const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
