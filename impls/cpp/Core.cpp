@@ -1,5 +1,6 @@
 #include "MAL.h"
 #include "Environment.h"
+#include "Reader.h"
 #include "ReadLine.h"
 #include "StaticList.h"
 #include "Types.h"

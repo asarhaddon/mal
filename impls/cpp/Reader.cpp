@@ -1,6 +1,6 @@
 #include "Debug.h"
-#include "MAL.h"
-#include "Types.h"
+#include "Reader.h"
+#include "Validation.h"
 
 #include <regex>
 
@@ -163,7 +163,7 @@ static malValuePtr readAtom(Tokeniser& tokeniser)
         const char* token;
         const char* symbol;
     };
-    ReaderMacro macroTable[] = {
+    const static ReaderMacro macroTable[] = {
         { "@",   "deref" },
         { "`",   "quasiquote" },
         { "'",   "quote" },
@@ -175,7 +175,7 @@ static malValuePtr readAtom(Tokeniser& tokeniser)
         const char* token;
         malValuePtr value;
     };
-    Constant constantTable[] = {
+    const static Constant constantTable[] = {
         { "false",  mal::falseValue()  },
         { "nil",    mal::nilValue()          },
         { "true",   mal::trueValue()   },
