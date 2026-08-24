@@ -492,7 +492,10 @@ String malString::print(bool readably) const
 
 malValuePtr malSymbol::eval(malEnvPtr env)
 {
-    return env->get(value());
+    auto key = value();
+    auto value = env->get(key);
+    MAL_CHECK(value, "'%s' not found", key.c_str());
+    return value;
 }
 
 malValuePtr malVector::conj(malValueIter argsBegin,

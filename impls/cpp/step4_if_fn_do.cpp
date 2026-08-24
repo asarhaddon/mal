@@ -45,8 +45,8 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
-       const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
-       if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
+       auto dbgenv = env->get("DEBUG-EVAL");
+       if (dbgenv && dbgenv->isTrue()) {
            std::cout << "EVAL: " << PRINT(ast) << "\n";
        }
 

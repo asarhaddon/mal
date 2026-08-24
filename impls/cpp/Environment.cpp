@@ -1,8 +1,6 @@
 #include "Debug.h"
 #include "Environment.h"
-#include "Types.h"
-
-#include <algorithm>
+#include "Validation.h"
 
 // make CPPFLAGS=-DDEBUG_ENV_LIFETIMES
 #if DEBUG_ENV_LIFETIMES
@@ -44,39 +42,19 @@ malEnv::~malEnv()
 #endif
 }
 
-malEnvPtr malEnv::find(const String& symbol)
+malValuePtr malEnv::get(const String& symbol) const
 {
-    for (malEnvPtr env = this; env; env = env->m_outer) {
-        if (env->m_map.find(symbol) != env->m_map.end()) {
-            return env;
-        }
-    }
-    return NULL;
-}
-
-malValuePtr malEnv::get(const String& symbol)
-{
-    for (malEnvPtr env = this; env; env = env->m_outer) {
+    for (auto env = this; env; env = env->m_outer.ptr()) {
         auto it = env->m_map.find(symbol);
         if (it != env->m_map.end()) {
             return it->second;
         }
     }
-    MAL_FAIL("'%s' not found", symbol.c_str());
+    return NULL;
 }
 
 malValuePtr malEnv::set(const String& symbol, malValuePtr value)
 {
     m_map[symbol] = value;
     return value;
-}
-
-malEnvPtr malEnv::getRoot()
-{
-    // Work our way down the the global environment.
-    for (malEnvPtr env = this; ; env = env->m_outer) {
-        if (!env->m_outer) {
-            return env;
-        }
-    }
 }

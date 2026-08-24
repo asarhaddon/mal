@@ -1,8 +1,10 @@
 #pragma once
 
-#include "MAL.h"
+#include "RefCountedPtr.h"
+#include "String.h"
+#include "Types.h"
 
-#include <map>
+#include <unordered_map>
 
 class malEnv : public RefCounted {
 public:
@@ -14,13 +16,13 @@ public:
 
     ~malEnv();
 
-    malValuePtr get(const String& symbol);
-    malEnvPtr   find(const String& symbol);
+    malValuePtr get(const String& symbol) const;
+    // NULL means not found
+
     malValuePtr set(const String& symbol, malValuePtr value);
-    malEnvPtr   getRoot();
 
 private:
-    typedef std::map<String, malValuePtr> Map;
+    typedef std::unordered_map<String, malValuePtr> Map;
     Map m_map;
-    malEnvPtr m_outer;
+    const malEnvPtr m_outer;
 };
