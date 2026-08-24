@@ -1,5 +1,4 @@
-#ifndef INCLUDE_ENVIRONMENT_H
-#define INCLUDE_ENVIRONMENT_H
+#pragma once
 
 #include "MAL.h"
 
@@ -25,5 +24,3 @@ private:
     Map m_map;
     malEnvPtr m_outer;
 };
-
-#endif // INCLUDE_ENVIRONMENT_H

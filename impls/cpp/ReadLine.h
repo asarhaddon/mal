@@ -1,5 +1,4 @@
-#ifndef INCLUDE_READLINE_H
-#define INCLUDE_READLINE_H
+#pragma once
 
 #include "String.h"
 
@@ -13,5 +12,3 @@ public:
 private:
     String m_historyPath;
 };
-
-#endif // INCLUDE_READLINE_H

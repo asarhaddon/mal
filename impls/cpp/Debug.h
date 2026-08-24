@@ -1,5 +1,4 @@
-#ifndef INCLUDE_DEBUG_H
-#define INCLUDE_DEBUG_H
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,5 +40,3 @@
 
 #define ASSERT(condition, ...) \
     _ASSERT(__FILE__, __LINE__, condition, __VA_ARGS__)
-
-#endif // INCLUDE_DEBUG_H

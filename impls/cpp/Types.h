@@ -1,5 +1,4 @@
-#ifndef INCLUDE_TYPES_H
-#define INCLUDE_TYPES_H
+#pragma once
 
 #include "MAL.h"
 
@@ -370,5 +369,3 @@ namespace mal {
     malValuePtr vector(malValueVec* items);
     malValuePtr vector(malValueIter begin, malValueIter end);
 };
-
-#endif // INCLUDE_TYPES_H
