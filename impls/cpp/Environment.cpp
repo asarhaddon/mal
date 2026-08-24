@@ -1,19 +1,26 @@
+#include "Debug.h"
 #include "Environment.h"
 #include "Types.h"
 
 #include <algorithm>
 
+// make CPPFLAGS=-DDEBUG_ENV_LIFETIMES
+#if DEBUG_ENV_LIFETIMES
+static size_t allocs = 0;
+#endif
+
 malEnv::malEnv(malEnvPtr outer)
 : m_outer(outer)
 {
-    TRACE_ENV("Creating malEnv %p, outer=%p\n", this, m_outer.ptr());
+#if DEBUG_ENV_LIFETIMES
+    TRACE("Create  env  %lu %p outer=%p\n", ++allocs, this, m_outer.ptr());
+#endif
 }
 
 malEnv::malEnv(malEnvPtr outer, const StringVec& bindings,
                malValueIter argsBegin, malValueIter argsEnd)
-: m_outer(outer)
+: malEnv(outer)
 {
-    TRACE_ENV("Creating malEnv %p, outer=%p\n", this, m_outer.ptr());
     int n = bindings.size();
     auto it = argsBegin;
     for (int i = 0; i < n; i++) {
@@ -32,7 +39,9 @@ malEnv::malEnv(malEnvPtr outer, const StringVec& bindings,
 
 malEnv::~malEnv()
 {
-    TRACE_ENV("Destroying malEnv %p, outer=%p\n", this, m_outer.ptr());
+#if DEBUG_ENV_LIFETIMES
+    TRACE("Destroy env  %lu %p outer=%p\n", --allocs, this, m_outer.ptr());
+#endif
 }
 
 malEnvPtr malEnv::find(const String& symbol)

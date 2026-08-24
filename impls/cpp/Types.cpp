@@ -6,6 +6,11 @@
 #include <memory>
 #include <typeinfo>
 
+// make CPPFLAGS=-DDEBUG_OBJECT_LIFETIMES
+#if DEBUG_OBJECT_LIFETIMES
+static size_t allocs = 0;
+#endif
+
 namespace mal {
     malValuePtr atom(malValuePtr value) {
         return malValuePtr(new malAtom(value));
@@ -337,6 +342,21 @@ malValuePtr malList::eval(malEnvPtr)
 String malList::print(bool readably) const
 {
     return '(' + malSequence::print(readably) + ')';
+}
+
+malValue::malValue(malValuePtr meta)
+: m_meta(meta)
+{
+#if DEBUG_OBJECT_LIFETIMES
+    TRACE("Create  form %lu %p\n", ++allocs, this);
+#endif
+}
+
+malValue::~malValue()
+{
+#if DEBUG_OBJECT_LIFETIMES
+    TRACE("Destroy form %lu %p\n", --allocs, this);
+#endif
 }
 
 malValuePtr malValue::eval(malEnvPtr env)

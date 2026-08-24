@@ -1,3 +1,4 @@
+#include "Debug.h"
 #include "MAL.h"
 #include "Types.h"
 

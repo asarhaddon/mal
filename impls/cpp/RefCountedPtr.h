@@ -1,8 +1,6 @@
 #ifndef INCLUDE_REFCOUNTEDPTR_H
 #define INCLUDE_REFCOUNTEDPTR_H
 
-#include "Debug.h"
-
 #include <cstddef>
 
 class RefCounted {

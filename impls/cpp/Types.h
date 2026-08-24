@@ -9,15 +9,8 @@ class malEmptyInputException : public std::exception { };
 
 class malValue : public RefCounted {
 public:
-    malValue() {
-        TRACE_OBJECT("Creating malValue %p\n", this);
-    }
-    malValue(malValuePtr meta) : m_meta(meta) {
-        TRACE_OBJECT("Creating malValue %p\n", this);
-    }
-    virtual ~malValue() {
-        TRACE_OBJECT("Destroying malValue %p\n", this);
-    }
+    malValue(malValuePtr meta = NULL);
+    virtual ~malValue();
 
     malValuePtr withMeta(malValuePtr meta) const;
     virtual malValuePtr doWithMeta(malValuePtr meta) const = 0;
