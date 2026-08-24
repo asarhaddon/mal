@@ -34,7 +34,7 @@ STDCXX = -std=c++11
 
 CPPFLAGS += $(INCPATHS)
 CXXFLAGS += $(OPT) $(WARN) $(DEBUG) $(STDCXX)
-LDLIBS += $(LIBPATHS) -lreadline -lhistory
+LDLIBS += $(LIBPATHS) -lreadline -lhistory -lgccpp -lgc
 
 .PHONY:	all clean dist
 

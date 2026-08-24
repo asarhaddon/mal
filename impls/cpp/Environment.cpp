@@ -2,17 +2,9 @@
 #include "Environment.h"
 #include "Validation.h"
 
-// make CPPFLAGS=-DDEBUG_ENV_LIFETIMES
-#if DEBUG_ENV_LIFETIMES
-static size_t allocs = 0;
-#endif
-
 malEnv::malEnv(malEnvPtr outer)
 : m_outer(outer)
 {
-#if DEBUG_ENV_LIFETIMES
-    TRACE("Create  env  %lu %p outer=%p\n", ++allocs, this, m_outer.ptr());
-#endif
 }
 
 malEnv::malEnv(malEnvPtr outer, const StringVec& bindings,
@@ -35,16 +27,9 @@ malEnv::malEnv(malEnvPtr outer, const StringVec& bindings,
     MAL_CHECK(it == argsEnd, "Too many parameters");
 }
 
-malEnv::~malEnv()
-{
-#if DEBUG_ENV_LIFETIMES
-    TRACE("Destroy env  %lu %p outer=%p\n", --allocs, this, m_outer.ptr());
-#endif
-}
-
 malValuePtr malEnv::get(const String& symbol) const
 {
-    for (auto env = this; env; env = env->m_outer.ptr()) {
+    for (auto env = this; env; env = env->m_outer) {
         auto it = env->m_map.find(symbol);
         if (it != env->m_map.end()) {
             return it->second;

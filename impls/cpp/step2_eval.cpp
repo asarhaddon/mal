@@ -1,16 +1,18 @@
 #include "Reader.h"
 #include "ReadLine.h"
-#include "RefCountedPtr.h"
 #include "String.h"
 #include "Types.h"
 #include "Validation.h"
+
+#include <gc/gc_allocator.h>
 
 #include <iostream>
 #include <unordered_map>
 
 class malEnv
-  : public std::unordered_map<String, malValuePtr>,
-    public RefCounted
+  : public std::unordered_map<String, malValuePtr, std::hash<String>,
+      std::equal_to<String>,
+      gc_allocator<std::pair<const String, malValuePtr>>>
 {
 };
 

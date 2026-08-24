@@ -4,6 +4,8 @@
 #include "String.h"
 #include "Validation.h"
 
+#include <gc/gc_allocator.h>
+
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -21,7 +23,7 @@
     checkArgsAtLeast(name.c_str(), expected, \
                         std::distance(argsBegin, argsEnd))
 
-std::vector<malBuiltIn*> handlers;
+std::vector<malBuiltIn*, gc_allocator<malBuiltIn*>> handlers;
 // We want to populate this list without duplication of the function
 // names in the source (or source generation).
 // This trick relies on static variables.
@@ -139,8 +141,8 @@ BUILTIN(">")
 BUILTIN("=")
 {
     CHECK_ARGS_IS(2);
-    const malValue* lhs = (*argsBegin++).ptr();
-    const malValue* rhs = (*argsBegin++).ptr();
+    const malValue* lhs = (*argsBegin++);
+    const malValue* rhs = (*argsBegin++);
 
     return mal::boolean(lhs->doIsEqualTo(rhs));
 }

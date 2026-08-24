@@ -1,23 +1,24 @@
 #pragma once
 
-#include "RefCountedPtr.h"
 #include "String.h"
+
+#include <gc/gc_allocator.h>
+#include <gc/gc_cpp.h>
 
 #include <functional>
 #include <unordered_map>
 #include <vector>
 
 class malValue;
-typedef RefCountedPtr<malValue>     malValuePtr;
-typedef std::vector<malValuePtr>    malValueVec;
+typedef malValue*                   malValuePtr;
+typedef std::vector<malValuePtr, gc_allocator<malValuePtr>> malValueVec;
 typedef malValueVec::const_iterator malValueIter;
 
 class malEnv;                   // Environment.h
-typedef RefCountedPtr<malEnv> malEnvPtr;
+typedef malEnv* malEnvPtr;
 
-class malValue : public RefCounted {
+class malValue : public gc {
 public:
-    virtual ~malValue();
     virtual malValuePtr doWithMeta(malValuePtr meta) const;
     malValuePtr meta() const;
     bool isTrue() const;
@@ -33,8 +34,8 @@ template<class T>
 T* value_cast(const String& context, malValuePtr obj, const char* typeName);
 
 #define VALUE_CAST(context, Type, Value) value_cast<Type>(context, Value, #Type)
-#define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value).ptr()))
-#define STATIC_CAST(Type, Value)   (static_cast<Type*>((Value).ptr()))
+#define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value)))
+#define STATIC_CAST(Type, Value)   (static_cast<Type*>((Value)))
 
 class malConstant : public malValue {
 public:
@@ -156,7 +157,8 @@ private:
         bool operator()(const malValuePtr& lhs, const malValuePtr& rhs) const;
     };
     typedef std::unordered_map<malValuePtr, malValuePtr, malKeyHash,
-                               malKeyEqual> Map;
+        malKeyEqual, gc_allocator<std::pair<const malValuePtr, malValuePtr>>>
+        Map;
     void addToMap(malValueIter argsBegin, malValueIter argsEnd,
                   const String& context);
     malHash();

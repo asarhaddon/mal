@@ -20,4 +20,4 @@ WORKDIR /mal
 ##########################################################
 
 # Install g++ for any C/C++ based implementations
-RUN apt-get -y install g++ libreadline-dev
+RUN apt-get -y install g++ libreadline-dev libgc-dev

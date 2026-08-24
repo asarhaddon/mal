@@ -1,17 +1,11 @@
 #include "Debug.h"
-#include "Environment.h"
 #include "Types.h"
 #include "Validation.h"
-
-// make CPPFLAGS=-DDEBUG_OBJECT_LIFETIMES
-#if DEBUG_OBJECT_LIFETIMES
-static size_t allocs = 0;
-#endif
 
 template<class T>
 T* value_cast(const String& context, malValuePtr obj, const char* typeName)
 {
-    T* dest = dynamic_cast<T*>(obj.ptr());
+    T* dest = dynamic_cast<T*>(obj);
     MAL_CHECK(dest != NULL, "%s: %s is not a %s", context.c_str(),
               obj->print(true).c_str(), typeName);
     return dest;
@@ -157,7 +151,7 @@ String malConstant::print(bool) const { return m_name; }
 bool malHash::malKeyEqual::operator()(const malValuePtr& lhs,
                                       const malValuePtr& rhs) const
 {
-    return lhs->doIsEqualTo(rhs.ptr());
+    return lhs->doIsEqualTo(rhs);
 }
 
 size_t malHash::malKeyHash::operator()(const malValuePtr& key) const
@@ -289,10 +283,10 @@ bool malHash::doIsEqualTo(const malValue* rhs) const
     for (auto it0 = m_map.begin(), end0 = m_map.end(), it1 = r_map.begin();
          it0 != end0; ++it0, ++it1) {
 
-        if (!it0->first->doIsEqualTo(it1->first.ptr())) {
+        if (!it0->first->doIsEqualTo(it1->first)) {
             return false;
         }
-        if (!it0->second->doIsEqualTo(it1->second.ptr())) {
+        if (!it0->second->doIsEqualTo(it1->second)) {
             return false;
         }
     }
@@ -390,16 +384,6 @@ String malList::print(bool readably) const
 malValue::malValue(malValuePtr meta)
 : m_meta(meta)
 {
-#if DEBUG_OBJECT_LIFETIMES
-    TRACE("Create  form %lu %p\n", ++allocs, this);
-#endif
-}
-
-malValue::~malValue()
-{
-#if DEBUG_OBJECT_LIFETIMES
-    TRACE("Destroy form %lu %p\n", --allocs, this);
-#endif
 }
 
 bool malValue::doIsEqualTo(const malValue*) const { return false; }
@@ -410,13 +394,13 @@ malValuePtr malValue::doWithMeta(malValuePtr) const
 
 bool malValue::isTrue() const
 {
-    return (this != mal::falseValue().ptr())
-        && (this != mal::nilValue().ptr());
+    return (this != mal::falseValue())
+        && (this != mal::nilValue());
 }
 
 malValuePtr malValue::meta() const
 {
-    return m_meta.ptr() == NULL ? mal::nilValue() : m_meta;
+    return m_meta == NULL ? mal::nilValue() : m_meta;
 }
 
 malSequence::malSequence()
@@ -447,7 +431,7 @@ bool malSequence::doIsEqualTo(const malValue* rhs) const
                       it1 = rhsSeq->begin(),
                       end = m_items.end(); it0 != end; ++it0, ++it1) {
 
-        if (!(*it0)->doIsEqualTo((*it1).ptr())) {
+        if (!(*it0)->doIsEqualTo((*it1))) {
             return false;
         }
     }
