@@ -1,5 +1,3 @@
-#include "MAL.h"
-
 #include "Reader.h"
 #include "ReadLine.h"
 #include "Types.h"
@@ -46,10 +44,4 @@ static malValuePtr EVAL(malValuePtr ast)
 String PRINT(malValuePtr ast)
 {
     return ast->print(true);
-}
-
-// These have been added after step 1 to keep the linker happy.
-malValuePtr EVAL(malValuePtr ast, malEnvPtr)
-{
-    return ast;
 }

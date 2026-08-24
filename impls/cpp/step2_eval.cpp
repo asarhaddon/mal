@@ -1,15 +1,23 @@
-#include "MAL.h"
-
-#include "Environment.h"
 #include "Reader.h"
 #include "ReadLine.h"
+#include "RefCountedPtr.h"
+#include "String.h"
 #include "Types.h"
+#include "Validation.h"
 
 #include <iostream>
+#include <unordered_map>
+
+class malEnv
+  : public std::unordered_map<String, malValuePtr>,
+    public RefCounted
+{
+};
 
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
 String rep(const String& input, malEnvPtr env);
+malValuePtr EVAL(malValuePtr ast, malEnvPtr env);
 
 static malBuiltIn::ApplyFunc
     builtIn_add, builtIn_sub, builtIn_mul, builtIn_div;
@@ -19,10 +27,10 @@ int main(int argc, char* argv[])
     String prompt = "user> ";
     String input;
     malEnvPtr replEnv(new malEnv);
-    replEnv->set("+", mal::builtin("+", &builtIn_add));
-    replEnv->set("-", mal::builtin("-", &builtIn_sub));
-    replEnv->set("*", mal::builtin("+", &builtIn_mul));
-    replEnv->set("/", mal::builtin("/", &builtIn_div));
+    (*replEnv)["+"] = mal::builtin("+", &builtIn_add);
+    (*replEnv)["-"] = mal::builtin("-", &builtIn_sub);
+    (*replEnv)["*"] = mal::builtin("+", &builtIn_mul);
+    (*replEnv)["/"] = mal::builtin("/", &builtIn_div);
     while (s_readLine_get(prompt, input)) {
         std::cout << rep(input, replEnv) << "\n";
     }
@@ -49,9 +57,22 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
     // std::cout << "EVAL: " << PRINT(ast) << "\n";
 
+        if (auto symbol = DYNAMIC_CAST(malSymbol, ast)) {
+            auto key = symbol->value();
+            auto it = env->find(key);
+            MAL_CHECK(it != env->end(), "'%s' not found", key.c_str());
+            auto value = it->second;
+            return value;
+        }
+        if (auto map = DYNAMIC_CAST(malHash, ast)) {
+            return map->fmap([env] (malValuePtr x) { return EVAL(x, env); });
+        }
+        if (auto vector = DYNAMIC_CAST(malVector, ast)) {
+            return vector->fmap([env] (malValuePtr x) { return EVAL(x, env); });
+        }
         const malList* list = DYNAMIC_CAST(malList, ast);
         if (!list || (list->count() == 0)) {
-            return ast->eval(env);
+            return ast;
         }
 
         // From here on down we are evaluating a non-empty list.

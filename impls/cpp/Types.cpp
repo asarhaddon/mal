@@ -1,6 +1,7 @@
 #include "Debug.h"
 #include "Environment.h"
 #include "Types.h"
+#include "Validation.h"
 
 #include <algorithm>
 #include <memory>
@@ -70,9 +71,10 @@ namespace mal {
         return malValuePtr(new malKeyword(token));
     };
 
-    malValuePtr lambda(const StringVec& bindings,
+    malValuePtr lambda(malLambda::ApplyFunc apply,
+                       const StringVec& bindings,
                        malValuePtr body, malEnvPtr env) {
-        return malValuePtr(new malLambda(bindings, body, env));
+        return malValuePtr(new malLambda(apply, bindings, body, env));
     }
 
     malValuePtr list(malValueVec* items) {
@@ -212,11 +214,11 @@ malHash::dissoc(malValueIter argsBegin, malValueIter argsEnd) const
     return mal::hash(map);
 }
 
-malValuePtr malHash::eval(malEnvPtr env)
+malValuePtr malHash::fmap(std::function<malValuePtr(malValuePtr)> f) const
 {
     malHash::Map map;
     for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
-        map[it->first] = EVAL(it->second, env);
+        map[it->first] = f(it->second);
     }
     return mal::hash(map);
 }
@@ -288,9 +290,11 @@ bool malHash::doIsEqualTo(const malValue* rhs) const
     return true;
 }
 
-malLambda::malLambda(const StringVec& bindings,
+malLambda::malLambda(ApplyFunc apply,
+                     const StringVec& bindings,
                      malValuePtr body, malEnvPtr env)
-: m_bindings(bindings)
+: m_apply(apply)
+, m_bindings(bindings)
 , m_body(body)
 , m_env(env)
 , m_isMacro(false)
@@ -300,6 +304,7 @@ malLambda::malLambda(const StringVec& bindings,
 
 malLambda::malLambda(const malLambda& that, malValuePtr meta)
 : malApplicable(meta)
+, m_apply(that.m_apply)
 , m_bindings(that.m_bindings)
 , m_body(that.m_body)
 , m_env(that.m_env)
@@ -310,6 +315,7 @@ malLambda::malLambda(const malLambda& that, malValuePtr meta)
 
 malLambda::malLambda(const malLambda& that, bool isMacro)
 : malApplicable(that.m_meta)
+, m_apply(that.m_apply)
 , m_bindings(that.m_bindings)
 , m_body(that.m_body)
 , m_env(that.m_env)
@@ -321,18 +327,17 @@ malLambda::malLambda(const malLambda& that, bool isMacro)
 malValuePtr malLambda::apply(malValueIter argsBegin,
                              malValueIter argsEnd) const
 {
-    return EVAL(m_body, makeEnv(argsBegin, argsEnd));
+    return m_apply(argsBegin, argsEnd);
 }
+
+StringVec malLambda::getBindings() const { return m_bindings; }
 
 malValuePtr malLambda::doWithMeta(malValuePtr meta) const
 {
     return new malLambda(*this, meta);
 }
 
-malEnvPtr malLambda::makeEnv(malValueIter argsBegin, malValueIter argsEnd) const
-{
-    return malEnvPtr(new malEnv(m_env, m_bindings, argsBegin, argsEnd));
-}
+malEnvPtr malLambda::getEnv() const { return m_env; }
 
 malValuePtr malList::conj(malValueIter argsBegin,
                           malValueIter argsEnd) const
@@ -345,11 +350,6 @@ malValuePtr malList::conj(malValueIter argsBegin,
     std::copy(begin(), end(), items->begin() + newItemCount);
 
     return mal::list(items);
-}
-
-malValuePtr malList::eval(malEnvPtr)
-{
-    MAL_FAIL("lists are evaluated in EVAL");
 }
 
 String malList::print(bool readably) const
@@ -370,12 +370,6 @@ malValue::~malValue()
 #if DEBUG_OBJECT_LIFETIMES
     TRACE("Destroy form %lu %p\n", --allocs, this);
 #endif
-}
-
-malValuePtr malValue::eval(malEnvPtr env)
-{
-    // Default case of eval is just to return the object itself.
-    return malValuePtr(this);
 }
 
 bool malValue::isEqualTo(const malValue* rhs) const
@@ -483,14 +477,6 @@ String malString::print(bool readably) const
     return readably ? escapedValue() : value();
 }
 
-malValuePtr malSymbol::eval(malEnvPtr env)
-{
-    auto key = value();
-    auto value = env->get(key);
-    MAL_CHECK(value, "'%s' not found", key.c_str());
-    return value;
-}
-
 malValuePtr malVector::conj(malValueIter argsBegin,
                             malValueIter argsEnd) const
 {
@@ -504,11 +490,11 @@ malValuePtr malVector::conj(malValueIter argsBegin,
     return mal::vector(items);
 }
 
-malValuePtr malVector::eval(malEnvPtr env)
+malValuePtr malVector::fmap(std::function<malValuePtr(malValuePtr)> f) const
 {
     malValueVec* items = new malValueVec;;
     for (const auto &x : *this) {
-        items->push_back(EVAL(x, env));
+        items->push_back(f(x));
     }
     return mal::vector(items);
 }

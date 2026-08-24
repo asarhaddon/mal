@@ -1,8 +1,19 @@
 #pragma once
 
-#include "MAL.h"
+#include "RefCountedPtr.h"
+#include "String.h"
 
+#include <functional>
 #include <map>
+#include <vector>
+
+class malValue;
+typedef RefCountedPtr<malValue>     malValuePtr;
+typedef std::vector<malValuePtr>    malValueVec;
+typedef malValueVec::const_iterator malValueIter;
+
+class malEnv;                   // Environment.h
+typedef RefCountedPtr<malEnv> malEnvPtr;
 
 class malValue : public RefCounted {
 public:
@@ -16,8 +27,6 @@ public:
     bool isTrue() const;
 
     bool isEqualTo(const malValue* rhs) const;
-
-    virtual malValuePtr eval(malEnvPtr env);
 
     virtual String print(bool readably) const = 0;
 
@@ -133,8 +142,6 @@ public:
     malSymbol(const malSymbol& that, malValuePtr meta)
         : malStringBase(that, meta) { }
 
-    virtual malValuePtr eval(malEnvPtr env);
-
     virtual bool doIsEqualTo(const malValue* rhs) const {
         return value() == static_cast<const malSymbol*>(rhs)->value();
     }
@@ -179,7 +186,6 @@ public:
         : malSequence(that, meta) { }
 
     virtual String print(bool readably) const;
-    virtual malValuePtr eval(malEnvPtr env);
 
     virtual malValuePtr conj(malValueIter argsBegin,
                              malValueIter argsEnd) const;
@@ -195,7 +201,7 @@ public:
     malVector(const malVector& that, malValuePtr meta)
         : malSequence(that, meta) { }
 
-    virtual malValuePtr eval(malEnvPtr env);
+    malValuePtr fmap(std::function<malValuePtr(malValuePtr)> f) const;
     virtual String print(bool readably) const;
 
     virtual malValuePtr conj(malValueIter argsBegin,
@@ -225,7 +231,7 @@ public:
     malValuePtr assoc(malValueIter argsBegin, malValueIter argsEnd) const;
     malValuePtr dissoc(malValueIter argsBegin, malValueIter argsEnd) const;
     bool contains(malValuePtr key) const;
-    malValuePtr eval(malEnvPtr env);
+    malValuePtr fmap(std::function<malValuePtr(malValuePtr)> f) const;
     malValuePtr get(malValuePtr key) const;
     malValuePtr keys() const;
     malValuePtr values() const;
@@ -274,15 +280,18 @@ private:
 
 class malLambda : public malApplicable {
 public:
-    malLambda(const StringVec& bindings, malValuePtr body, malEnvPtr env);
+    typedef std::function<malValuePtr(malValueIter, malValueIter)> ApplyFunc;
+    malLambda(ApplyFunc apply, const StringVec& bindings, malValuePtr body,
+              malEnvPtr env);
     malLambda(const malLambda& that, malValuePtr meta);
     malLambda(const malLambda& that, bool isMacro);
 
     virtual malValuePtr apply(malValueIter argsBegin,
                               malValueIter argsEnd) const;
 
+    StringVec getBindings() const;
     malValuePtr getBody() const { return m_body; }
-    malEnvPtr makeEnv(malValueIter argsBegin, malValueIter argsEnd) const;
+    malEnvPtr getEnv() const;
 
     virtual bool doIsEqualTo(const malValue* rhs) const {
         return this == rhs; // do we need to do a deep inspection?
@@ -297,6 +306,7 @@ public:
     virtual malValuePtr doWithMeta(malValuePtr meta) const;
 
 private:
+    const ApplyFunc   m_apply;
     const StringVec   m_bindings;
     const malValuePtr m_body;
     const malEnvPtr   m_env;
@@ -337,7 +347,8 @@ namespace mal {
     malValuePtr integer(int64_t value);
     malValuePtr integer(const String& token);
     malValuePtr keyword(const String& token);
-    malValuePtr lambda(const StringVec&, malValuePtr, malEnvPtr);
+    malValuePtr lambda(malLambda::ApplyFunc apply, const StringVec&,
+                       malValuePtr, malEnvPtr);
     malValuePtr list(malValueVec* items);
     malValuePtr list(malValueIter begin, malValueIter end);
     malValuePtr list(malValuePtr a);

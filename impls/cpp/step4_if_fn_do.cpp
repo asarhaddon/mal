@@ -1,10 +1,9 @@
-#include "MAL.h"
-
 #include "Core.h"
 #include "Environment.h"
 #include "Reader.h"
 #include "ReadLine.h"
 #include "Types.h"
+#include "Validation.h"
 
 #include <iostream>
 
@@ -12,6 +11,7 @@ malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
 static void installFunctions(malEnvPtr env);
 String rep(const String& input, malEnvPtr env);
+malValuePtr EVAL(malValuePtr ast, malEnvPtr env);
 
 const malEnvPtr replEnv(new malEnv);
 
@@ -50,9 +50,21 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
            std::cout << "EVAL: " << PRINT(ast) << "\n";
        }
 
+        if (auto symbol = DYNAMIC_CAST(malSymbol, ast)) {
+            auto key = symbol->value();
+            auto value = env->get(key);
+            MAL_CHECK(value, "'%s' not found", key.c_str());
+            return value;
+        }
+        if (auto map = DYNAMIC_CAST(malHash, ast)) {
+            return map->fmap([env] (malValuePtr x) { return EVAL(x, env); });
+        }
+        if (auto vector = DYNAMIC_CAST(malVector, ast)) {
+            return vector->fmap([env] (malValuePtr x) { return EVAL(x, env); });
+        }
         const malList* list = DYNAMIC_CAST(malList, ast);
         if (!list || (list->count() == 0)) {
-            return ast->eval(env);
+            return ast;
         }
 
         // From here on down we are evaluating a non-empty list.
@@ -88,7 +100,11 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                     params.push_back(sym->value());
                 }
 
-                return mal::lambda(params, list->item(2), env);
+                malValuePtr body = list->item(2);
+                malLambda::ApplyFunc apply =
+                    [body, env, params] (malValueIter b, malValueIter e)
+                    { return EVAL(body, new malEnv(env, params, b, e)); };
+                return mal::lambda(apply, params, body, env);
             }
 
             if (special == "if") {
