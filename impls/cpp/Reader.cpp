@@ -150,7 +150,7 @@ static malValuePtr readForm(Tokeniser& tokeniser)
         tokeniser.next();
         malValueVec items;
         readList(tokeniser, &items, "}");
-        return mal::hash(items.begin(), items.end(), false);
+        return mal::hash(items.begin(), items.end());
     }
     return readAtom(tokeniser);
 }

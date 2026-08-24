@@ -304,7 +304,7 @@ BUILTIN("get")
 
 BUILTIN("hash-map")
 {
-    return mal::hash(argsBegin, argsEnd, true);
+    return mal::hash(argsBegin, argsEnd);
 }
 
 BUILTIN("keys")

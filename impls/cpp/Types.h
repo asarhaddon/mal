@@ -217,10 +217,10 @@ class malHash : public malValue {
 public:
     typedef std::map<String, malValuePtr> Map;
 
-    malHash(malValueIter argsBegin, malValueIter argsEnd, bool isEvaluated);
+    malHash(malValueIter argsBegin, malValueIter argsEnd);
     malHash(const malHash::Map& map);
     malHash(const malHash& that, malValuePtr meta)
-    : malValue(meta), m_map(that.m_map), m_isEvaluated(that.m_isEvaluated) { }
+    : malValue(meta), m_map(that.m_map) { }
 
     malValuePtr assoc(malValueIter argsBegin, malValueIter argsEnd) const;
     malValuePtr dissoc(malValueIter argsBegin, malValueIter argsEnd) const;
@@ -238,7 +238,6 @@ public:
 
 private:
     const Map m_map;
-    const bool m_isEvaluated;
 };
 
 class malBuiltIn : public malApplicable {
@@ -333,8 +332,7 @@ namespace mal {
     malValuePtr boolean(bool value);
     malValuePtr builtin(const String& name, malBuiltIn::ApplyFunc handler);
     malValuePtr falseValue();
-    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd,
-                     bool isEvaluated);
+    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd);
     malValuePtr hash(const malHash::Map& map);
     malValuePtr integer(int64_t value);
     malValuePtr integer(const String& token);
