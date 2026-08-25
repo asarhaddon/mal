@@ -187,11 +187,10 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 }
                 checkArgsIs("try*", 2, argCount);
                 const malList* catchBlock = VALUE_CAST("try*", malList, list->item(2));
-
+                MAL_CHECK(!catchBlock->isEmpty() &&
+                          VALUE_CAST("catch*", malSymbol, catchBlock->item(0))->value() == "catch*",
+                          "catch block must begin with catch*");
                 checkArgsIs("catch*", 2, catchBlock->count() - 1);
-                MAL_CHECK(VALUE_CAST("catch*", malSymbol,
-                    catchBlock->item(0))->value() == "catch*",
-                    "catch block must begin with catch*");
 
                 // We don't need excSym at this scope, but we want to check
                 // that the catch block is valid always, not just in case of
