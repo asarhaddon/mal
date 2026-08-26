@@ -51,47 +51,47 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         env = replEnv;
     }
 
-    const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
-    if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
-        std::cout << "EVAL: " << PRINT(ast) << "\n";
-    }
+       const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
+       if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
+           std::cout << "EVAL: " << PRINT(ast) << "\n";
+       }
 
-    const malList* list = DYNAMIC_CAST(malList, ast);
-    if (!list || (list->count() == 0)) {
-        return ast->eval(env);
-    }
-
-    // From here on down we are evaluating a non-empty list.
-    // First handle the special forms.
-    if (const malSymbol* symbol = DYNAMIC_CAST(malSymbol, list->item(0))) {
-        String special = symbol->value();
-        int argCount = list->count() - 1;
-
-        if (special == "def!") {
-            checkArgsIs("def!", 2, argCount);
-            const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
-            return env->set(id->value(), EVAL(list->item(2), env));
+        const malList* list = DYNAMIC_CAST(malList, ast);
+        if (!list || (list->count() == 0)) {
+            return ast->eval(env);
         }
 
-        if (special == "let*") {
-            checkArgsIs("let*", 2, argCount);
-            const malSequence* bindings =
-                VALUE_CAST(malSequence, list->item(1));
-            int count = checkArgsEven("let*", bindings->count());
-            malEnvPtr inner(new malEnv(env));
-            for (int i = 0; i < count; i += 2) {
-                const malSymbol* var =
-                    VALUE_CAST(malSymbol, bindings->item(i));
-                inner->set(var->value(), EVAL(bindings->item(i+1), inner));
+        // From here on down we are evaluating a non-empty list.
+        // First handle the special forms.
+        if (const malSymbol* symbol = DYNAMIC_CAST(malSymbol, list->item(0))) {
+            String special = symbol->value();
+            int argCount = list->count() - 1;
+
+            if (special == "def!") {
+                checkArgsIs("def!", 2, argCount);
+                const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
+                return env->set(id->value(), EVAL(list->item(2), env));
             }
-            return EVAL(list->item(2), inner);
-        }
-    }
 
-    // Now we're left with the case of a regular list to be evaluated.
-    std::unique_ptr<malValueVec> items(list->evalItems(env));
-    malValuePtr op = items->at(0);
-    return APPLY(op, items->begin()+1, items->end());
+            if (special == "let*") {
+                checkArgsIs("let*", 2, argCount);
+                const malSequence* bindings =
+                    VALUE_CAST(malSequence, list->item(1));
+                int count = checkArgsEven("let*", bindings->count());
+                malEnvPtr inner(new malEnv(env));
+                for (int i = 0; i < count; i += 2) {
+                    const malSymbol* var =
+                        VALUE_CAST(malSymbol, bindings->item(i));
+                    inner->set(var->value(), EVAL(bindings->item(i+1), inner));
+                }
+                return EVAL(list->item(2), inner);
+            }
+        }
+
+        // Now we're left with the case of a regular list to be evaluated.
+        std::unique_ptr<malValueVec> items(list->evalItems(env));
+        malValuePtr op = items->at(0);
+        return APPLY(op, items->begin()+1, items->end());
 }
 
 String PRINT(malValuePtr ast)

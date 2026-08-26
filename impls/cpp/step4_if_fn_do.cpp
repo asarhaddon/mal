@@ -53,87 +53,87 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
         env = replEnv;
     }
 
-    const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
-    if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
-        std::cout << "EVAL: " << PRINT(ast) << "\n";
-    }
+       const malEnvPtr dbgenv = env->find("DEBUG-EVAL");
+       if (dbgenv && dbgenv->get("DEBUG-EVAL")->isTrue()) {
+           std::cout << "EVAL: " << PRINT(ast) << "\n";
+       }
 
-    const malList* list = DYNAMIC_CAST(malList, ast);
-    if (!list || (list->count() == 0)) {
-        return ast->eval(env);
-    }
-
-    // From here on down we are evaluating a non-empty list.
-    // First handle the special forms.
-    if (const malSymbol* symbol = DYNAMIC_CAST(malSymbol, list->item(0))) {
-        String special = symbol->value();
-        int argCount = list->count() - 1;
-
-        if (special == "def!") {
-            checkArgsIs("def!", 2, argCount);
-            const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
-            return env->set(id->value(), EVAL(list->item(2), env));
+        const malList* list = DYNAMIC_CAST(malList, ast);
+        if (!list || (list->count() == 0)) {
+            return ast->eval(env);
         }
 
-        if (special == "do") {
-            checkArgsAtLeast("do", 1, argCount);
+        // From here on down we are evaluating a non-empty list.
+        // First handle the special forms.
+        if (const malSymbol* symbol = DYNAMIC_CAST(malSymbol, list->item(0))) {
+            String special = symbol->value();
+            int argCount = list->count() - 1;
 
-            for (int i = 1; i < argCount; i++) {
-                EVAL(list->item(i), env);
-            }
-            return EVAL(list->item(argCount), env);
-        }
-
-        if (special == "fn*") {
-            checkArgsIs("fn*", 2, argCount);
-
-            const malSequence* bindings =
-                VALUE_CAST(malSequence, list->item(1));
-            StringVec params;
-            for (int i = 0; i < bindings->count(); i++) {
-                const malSymbol* sym =
-                    VALUE_CAST(malSymbol, bindings->item(i));
-                params.push_back(sym->value());
+            if (special == "def!") {
+                checkArgsIs("def!", 2, argCount);
+                const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
+                return env->set(id->value(), EVAL(list->item(2), env));
             }
 
-            return mal::lambda(params, list->item(2), env);
-        }
+            if (special == "do") {
+                checkArgsAtLeast("do", 1, argCount);
 
-        if (special == "if") {
-            checkArgsBetween("if", 2, 3, argCount);
-
-            bool isTrue = EVAL(list->item(1), env)->isTrue();
-            if (!isTrue && (argCount == 2)) {
-                return mal::nilValue();
+                for (int i = 1; i < argCount; i++) {
+                    EVAL(list->item(i), env);
+                }
+                return EVAL(list->item(argCount), env);
             }
-            return EVAL(list->item(isTrue ? 2 : 3), env);
-        }
 
-        if (special == "let*") {
-            checkArgsIs("let*", 2, argCount);
-            const malSequence* bindings =
-                VALUE_CAST(malSequence, list->item(1));
-            int count = checkArgsEven("let*", bindings->count());
-            malEnvPtr inner(new malEnv(env));
-            for (int i = 0; i < count; i += 2) {
-                const malSymbol* var =
-                    VALUE_CAST(malSymbol, bindings->item(i));
-                inner->set(var->value(), EVAL(bindings->item(i+1), inner));
+            if (special == "fn*") {
+                checkArgsIs("fn*", 2, argCount);
+
+                const malSequence* bindings =
+                    VALUE_CAST(malSequence, list->item(1));
+                StringVec params;
+                for (int i = 0; i < bindings->count(); i++) {
+                    const malSymbol* sym =
+                        VALUE_CAST(malSymbol, bindings->item(i));
+                    params.push_back(sym->value());
+                }
+
+                return mal::lambda(params, list->item(2), env);
             }
-            return EVAL(list->item(2), inner);
-        }
-    }
 
-    // Now we're left with the case of a regular list to be evaluated.
-    std::unique_ptr<malValueVec> items(list->evalItems(env));
-    malValuePtr op = items->at(0);
-    if (const malLambda* lambda = DYNAMIC_CAST(malLambda, op)) {
-        return EVAL(lambda->getBody(),
-                    lambda->makeEnv(items->begin()+1, items->end()));
-    }
-    else {
-        return APPLY(op, items->begin()+1, items->end());
-    }
+            if (special == "if") {
+                checkArgsBetween("if", 2, 3, argCount);
+
+                bool isTrue = EVAL(list->item(1), env)->isTrue();
+                if (!isTrue && (argCount == 2)) {
+                    return mal::nilValue();
+                }
+                return EVAL(list->item(isTrue ? 2 : 3), env);
+            }
+
+            if (special == "let*") {
+                checkArgsIs("let*", 2, argCount);
+                const malSequence* bindings =
+                    VALUE_CAST(malSequence, list->item(1));
+                int count = checkArgsEven("let*", bindings->count());
+                malEnvPtr inner(new malEnv(env));
+                for (int i = 0; i < count; i += 2) {
+                    const malSymbol* var =
+                        VALUE_CAST(malSymbol, bindings->item(i));
+                    inner->set(var->value(), EVAL(bindings->item(i+1), inner));
+                }
+                return EVAL(list->item(2), inner);
+            }
+        }
+
+        // Now we're left with the case of a regular list to be evaluated.
+        std::unique_ptr<malValueVec> items(list->evalItems(env));
+        malValuePtr op = items->at(0);
+        if (const malLambda* lambda = DYNAMIC_CAST(malLambda, op)) {
+            return EVAL(lambda->getBody(),
+                        lambda->makeEnv(items->begin()+1, items->end()));
+        }
+        else {
+            return APPLY(op, items->begin()+1, items->end());
+        }
 }
 
 String PRINT(malValuePtr ast)
