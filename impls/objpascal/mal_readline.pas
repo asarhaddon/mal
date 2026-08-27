@@ -22,6 +22,7 @@ uses sysutils,
 
 function readline(Prompt: PChar) : PChar; cdecl; external;
 procedure add_history(Line: PChar); cdecl; external;
+procedure free(P : pointer); cdecl; external 'c';
 
 // API
 
@@ -44,6 +45,7 @@ begin
         add_history(Line);
 
     _readline := Line;
+    free(Line);
 end;
 
 end.
