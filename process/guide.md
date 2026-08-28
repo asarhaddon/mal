@@ -712,6 +712,18 @@ Your mal implementation is still basically just a numeric calculator
 with save/restore capability. But you have set the foundation for step
 4 where it will begin to feel like a real programming language.
 
+Hints.
+
+To be honest, the `def!` special form only intends to mutate the
+special top REPL environment.  Feel free to forbid `def!` in all other
+environments if it makes your life easyer, but be warned that the test
+suite may then be less effective.
+
+Environments are mutable in nature.  Even if tests do not enforce this
+yet, every reference to an environment should be affected when it is
+modified, either by an obvious `def!` or by a later `let*` binding.
+Step 4 will allow closures to reference an environment, and should not
+only receive a copy of its state at the moment of capture.
 
 An aside on mutation and typing:
 
@@ -801,6 +813,11 @@ environment `env`. In this case, your native functions will need to be
 wrapped in the same way. You will probably also need a method/function
 that invokes your function object/structure for the default case of
 the apply section of `EVAL`.
+
+The function must take a reference to the environment they were
+created in, so that later changes in the environment affects next
+executions of the function.  This is not enforced by the test suite
+yet, but may be in the future.
 
 Try out the basic functionality you have implemented:
 
