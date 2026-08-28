@@ -1,10 +1,11 @@
 #![allow(non_snake_case)]
 
-use std::rc::Rc;
+use dumpster::unsync::Gc;
 //use std::collections::HashMap;
 use fnv::FnvHashMap;
 use itertools::Itertools;
 
+extern crate dumpster;
 extern crate fnv;
 extern crate itertools;
 extern crate regex;
@@ -109,7 +110,7 @@ fn eval(orig_ast: &MalVal, orig_env: &Env) -> MalRet {
                 for (k, v) in hm.iter() {
                     new_hm.insert(k.to_string(), eval(v, env)?);
                 }
-                return Ok(Hash(Rc::new(new_hm), Rc::new(Nil)));
+                return Ok(Hash(Gc::new(new_hm), Gc::new(Nil)));
             }
             List(l, _) => {
                 if l.is_empty() {
@@ -173,11 +174,11 @@ fn eval(orig_ast: &MalVal, orig_env: &Env) -> MalRet {
                     Sym(a0sym) if a0sym == "fn*" => {
                         let (a1, a2) = (l[1].clone(), l[2].clone());
                         return Ok(MalFunc(FuncStruct {
-                            ast: Rc::new(a2),
+                            ast: Gc::new(a2),
                             env: env.clone(),
-                            params: Rc::new(a1),
+                            params: Gc::new(a1),
                             is_macro: false,
-                            meta: Rc::new(Nil),
+                            meta: Gc::new(Nil),
                         }));
                     }
                     _ => match eval(a0, env)? {

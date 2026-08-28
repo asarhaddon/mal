@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+extern crate dumpster;
 extern crate fnv;
 extern crate itertools;
 extern crate regex;

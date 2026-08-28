@@ -1,23 +1,24 @@
 use std::cell::RefCell;
-use std::rc::Rc;
+use dumpster::{Trace, unsync::Gc};
 //use std::collections::HashMap;
 use fnv::FnvHashMap;
 
 use crate::types::MalVal::{List, Sym, Vector};
 use crate::types::{error, list, MalRet, MalVal};
 
+#[derive(Trace)]
 pub struct EnvStruct {
     data: RefCell<FnvHashMap<String, MalVal>>,
     outer: Option<Env>,
 }
 
-pub type Env = Rc<EnvStruct>;
+pub type Env = Gc<EnvStruct>;
 
 // TODO: it would be nice to use impl here but it doesn't work on
 // a deftype (i.e. Env)
 
 pub fn env_new(outer: Option<Env>) -> Env {
-    Rc::new(EnvStruct {
+    Gc::new(EnvStruct {
         data: RefCell::new(FnvHashMap::default()),
         outer,
     })

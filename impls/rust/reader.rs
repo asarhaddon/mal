@@ -1,5 +1,5 @@
 use regex::{Captures, Regex};
-use std::rc::Rc;
+use dumpster::unsync::Gc;
 
 use crate::types::MalVal::{Bool, Int, Kwd, List, Nil, Str, Sym};
 use crate::types::{error, hash_map, list, vector, MalRet, MalVal};

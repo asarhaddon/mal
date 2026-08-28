@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::rc::Rc;
+use dumpster::{Trace, unsync::Gc};
 //use std::collections::HashMap;
 use fnv::FnvHashMap;
 use itertools::Itertools;
@@ -7,11 +7,7 @@ use itertools::Itertools;
 use crate::env::Env;
 use crate::types::MalVal::{Bool, Func, Hash, Int, Kwd, List, MalFunc, Nil, Str, Sym, Vector};
 
-// Function closures and atoms may create cyclic dependencies, so
-// reference counting should be replaced at least for these two kinds
-// of references.
-
-#[derive(Clone)]
+#[derive(Clone, Trace)]
 pub enum MalVal {
     Nil,
     Bool(bool),
@@ -20,21 +16,21 @@ pub enum MalVal {
     Str(String),
     Sym(String),
     Kwd(String),
-    List(Rc<Vec<MalVal>>, Rc<MalVal>),
-    Vector(Rc<Vec<MalVal>>, Rc<MalVal>),
-    Hash(Rc<FnvHashMap<String, MalVal>>, Rc<MalVal>),
-    Func(fn(MalArgs) -> MalRet, Rc<MalVal>),
+    List(Gc<Vec<MalVal>>, Gc<MalVal>),
+    Vector(Gc<Vec<MalVal>>, Gc<MalVal>),
+    Hash(Gc<FnvHashMap<String, MalVal>>, Gc<MalVal>),
+    Func(fn(MalArgs) -> MalRet, Gc<MalVal>),
     MalFunc(FuncStruct),
-    Atom(Rc<RefCell<MalVal>>),
+    Atom(Gc<RefCell<MalVal>>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Trace)]
 pub struct FuncStruct {
-    pub ast: Rc<MalVal>,
+    pub ast: Gc<MalVal>,
     pub env: Env,
-    pub params: Rc<MalVal>,
+    pub params: Gc<MalVal>,
     pub is_macro: bool,
-    pub meta: Rc<MalVal>,
+    pub meta: Gc<MalVal>,
 }
 
 pub type MalArgs = Vec<MalVal>;
@@ -45,7 +41,7 @@ pub type MalRet = Result<MalVal, MalVal>;
 macro_rules! list {
   [$($args:expr),*] => {{
     let v: Vec<MalVal> = vec![$($args),*];
-    List(Rc::new(v),Rc::new(Nil))
+    List(Gc::new(v),Gc::new(Nil))
   }}
 }
 
@@ -56,11 +52,11 @@ pub fn error<T>(s: &str) -> Result<T, MalVal> {
 }
 
 pub fn list(seq: MalArgs) -> MalVal {
-    List(Rc::new(seq), Rc::new(Nil))
+    List(Gc::new(seq), Gc::new(Nil))
 }
 
 pub fn vector(seq: MalArgs) -> MalVal {
-    Vector(Rc::new(seq), Rc::new(Nil))
+    Vector(Gc::new(seq), Gc::new(Nil))
 }
 
 impl PartialEq for MalVal {
@@ -84,7 +80,7 @@ impl PartialEq for MalVal {
 }
 
 pub fn func(f: fn(MalArgs) -> MalRet) -> MalVal {
-    Func(f, Rc::new(Nil))
+    Func(f, Gc::new(Nil))
 }
 
 pub fn _assoc(mut hm: FnvHashMap<String, MalVal>, kvs: MalArgs) -> MalRet {
@@ -94,7 +90,7 @@ pub fn _assoc(mut hm: FnvHashMap<String, MalVal>, kvs: MalArgs) -> MalRet {
     for (k, v) in kvs.iter().tuples() {
         hm.insert(wrap_map_key(k)?, v.clone());
     }
-    Ok(Hash(Rc::new(hm), Rc::new(Nil)))
+    Ok(Hash(Gc::new(hm), Gc::new(Nil)))
 }
 
 pub fn wrap_map_key(k: &MalVal) -> Result<String, MalVal> {

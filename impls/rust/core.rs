@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Read;
-use std::rc::Rc;
+use dumpster::unsync::Gc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::printer::pr_seq;
@@ -101,7 +101,7 @@ fn dissoc(a: MalArgs) -> MalRet {
             for k in a[1..].iter() {
                 let _ = new_hm.remove(&wrap_map_key(k)?);
             }
-            Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
+            Ok(Hash(Gc::new(new_hm), Gc::new(Nil)))
         }
         _ => error("dissoc on non-Hash Map"),
     }
@@ -130,7 +130,7 @@ fn vals(a: MalArgs) -> MalRet {
 
 fn vec(a: MalArgs) -> MalRet {
     match a[0] {
-        List(ref v, _) => Ok(Vector(v.clone(), Rc::new(Nil))),
+        List(ref v, _) => Ok(Vector(v.clone(), Gc::new(Nil))),
         Vector(_, _) => Ok(a[0].clone()),
         _ => error("non-seq passed to vec"),
     }
@@ -255,7 +255,7 @@ pub fn count(a: MalArgs) -> MalRet {
 }
 
 pub fn atom(a: MalArgs) -> MalRet {
-    Ok(Atom(Rc::new(std::cell::RefCell::new(a[0].clone()))))
+    Ok(Atom(Gc::new(std::cell::RefCell::new(a[0].clone()))))
 }
 
 pub fn deref(a: MalArgs) -> MalRet {
@@ -298,7 +298,7 @@ pub fn get_meta(a: MalArgs) -> MalRet {
 }
 
 pub fn with_meta(a: MalArgs) -> MalRet {
-    let m = Rc::new(a[1].clone());
+    let m = Gc::new(a[1].clone());
     match a[0] {
         List(ref l, _) => Ok(List(l.clone(), m)),
         Vector(ref l, _) => Ok(Vector(l.clone(), m)),

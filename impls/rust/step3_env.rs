@@ -1,10 +1,11 @@
 #![allow(non_snake_case)]
 
-use std::rc::Rc;
+use dumpster::unsync::Gc;
 //use std::collections::HashMap;
 use fnv::FnvHashMap;
 use itertools::Itertools;
 
+extern crate dumpster;
 extern crate fnv;
 extern crate itertools;
 extern crate regex;
@@ -58,7 +59,7 @@ fn eval(ast: &MalVal, env: &Env) -> MalRet {
             for (k, v) in hm.iter() {
                 new_hm.insert(k.to_string(), eval(v, env)?);
             }
-            Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
+            Ok(Hash(Gc::new(new_hm), Gc::new(Nil)))
         }
         List(l, _) => {
             if l.is_empty() {
