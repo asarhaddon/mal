@@ -19,6 +19,10 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
+# Some dependencies require rust/1.95, not yet in Ubuntu.
+RUN apt-get -y install debian-archive-keyring
+RUN printf 'Types: deb\nURIs: http://deb.debian.org/debian\nSuites: forky\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' > /etc/apt/sources.list.d/rust195.sources
+RUN apt update
 RUN apt-get -y install cargo \
   librust-fnv-dev \
   librust-itertools-dev \
