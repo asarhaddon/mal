@@ -257,8 +257,12 @@ make-a-lisp process.
   line editing support. Another option if your language supports it is
   to use an FFI (foreign function interface) to load and call directly
   into GNU readline, editline, or linenoise library. Add line
-  editing interface code to `readline.qx`
+  editing interface code to `readline.qx`.
 
+  If your interpreter uses an history file, `~/.mal-history` is
+  recommended for consistent debugging, with `~` expanded as usual,
+  but failures should not crash the interpreter because such a file is
+  unavailable during automated tests.
 
 <a name="step1"></a>
 
