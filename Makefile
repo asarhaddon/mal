@@ -29,6 +29,7 @@ all help:
 	@echo 'make "stats^IMPL"                 # run 'make stats' for IMPL'
 	@echo 'make "stats-lisp^IMPL"            # run 'make stats-lisp' for IMPL'
 	@echo
+	@echo 'make "valgrind^IMPL"              # run valgrind for (compiled) IMPL
 	@echo 'Options/Settings:'
 	@echo
 	@echo 'make MAL_IMPL=IMPL "test^mal..."  # use IMPL for self-host tests'
@@ -228,6 +229,11 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(s
 
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),build^$(i)^$(s))): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 
+# Example creating cycles with environment and atom mutability,
+# without trying to print an atom referencing itself.
+REFERENCE_CYCLES := (let* [f (fn* [] 0) a (atom 0) b (reset! a a)] 0)
+$(DO_IMPLS:%=valgrind^%): valgrind^%: build^%^stepA
+	printf '$(REFERENCE_CYCLES)' | valgrind $(call $*_STEP_TO_PROG,stepA)
 
 
 #

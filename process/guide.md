@@ -308,6 +308,21 @@ expression support.
 
 * Copy `step0_repl.qx` to `step1_read_print.qx`.
 
+* Add a `types.qx` file defining the representation of MAL objects in
+  the implementation language.  Even if for now the translation of
+  numbers and strings may seem trivial, next steps will for example
+  introduce two other types implemented as strings.
+
+  If your implementation language provides garbage collection, memory
+  leaks are not a concern.  Else, do not let them distract you from
+  the MAL learning curve.  They will almost certainly not prevent you
+  from completing it.  Be warned that garbage collection was invented
+  exactly because of issues raised by the first Lisp, and involves
+  complex compromises with perfomance.  Should you find this challenge
+  interesting, at least wait for steps 4 to 6.  They introduce cycles
+  that generic reference counting or weak references cannot
+  handle. The end of this file contains a few hints.
+
 * Add a `reader.qx` file to hold functions related to the reader.
 
 * If the target language has object types (OOP), then the next step
@@ -1722,6 +1737,13 @@ implementation.
   repository. The [FAQ](../docs/FAQ.md#will-you-add-my-new-implementation)
   describes general requirements for getting an implementation merged
   into the main repository.
+* If the implementation language provides no garbage collection,
+  prevent memory leaks by MAL your interpreter.  Recall that function
+  closures reference the environment in which they were defined, and
+  that atoms introduce mutability, hence possible reference cycles.
+  `(let* [f (fn* [] 0)] 0)` and `(let* [a (atom 0) b (reset! a a)] 0)`
+  may lead you to interesting thoughts.  If the language is compiled,
+  `make valgrind^IMPL` may spare you some thinking and typing.
 * Take your interpreter implementation and have it emit source code in
   the target language rather than immediately evaluating it. In other
   words, create a compiler.
