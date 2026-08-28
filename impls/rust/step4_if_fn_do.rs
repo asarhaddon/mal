@@ -26,10 +26,7 @@ impl MalVal {
         match self {
             Func(f, _) => f(args),
             MalFunc(FuncStruct {
-                ref ast,
-                ref env,
-                ref params,
-                ..
+                ast, env, params, ..
             }) => {
                 let fn_env = &env_bind(env.clone(), params, args)?;
                 eval(ast, fn_env)

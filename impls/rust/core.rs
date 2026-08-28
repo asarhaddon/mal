@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::printer::pr_seq;
 use crate::reader::read_str;
+use crate::readline;
 use crate::types::MalVal::{
     Atom, Bool, Func, Hash, Int, Kwd, List, MalFunc, Nil, Str, Sym, Vector,
 };
@@ -12,7 +13,6 @@ use crate::types::{
     list, FuncStruct, MalArgs, MalRet, MalVal, _assoc, error, func, hash_map, unwrap_map_key,
     vector, wrap_map_key,
 };
-use readline;
 
 macro_rules! fn_t_int_int {
     ($ret:ident, $fn:expr) => {{
