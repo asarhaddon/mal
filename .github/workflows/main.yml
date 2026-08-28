@@ -30,7 +30,7 @@ jobs:
       do-windows: ${{ steps.get-matrix-step.outputs.do_windows }}
       matrix-windows: ${{ steps.get-matrix-step.outputs.windows }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: files
         if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: kanaka/get-changed-files@v4
@@ -50,7 +50,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-linux) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # Need full history for voom like versions
       - name: Log in to GitHub Container Registry
@@ -94,7 +94,7 @@ jobs:
         if: failure()
         run: cat *.debug
       - name: Archive logs and debug output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs.${{ matrix.IMPL }}
           path: |
@@ -109,7 +109,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.get-matrix.outputs.matrix-macos) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build
         run: |
           export ${{ matrix.IMPL }}
@@ -141,7 +141,7 @@ jobs:
         if: failure()
         run: cat *.debug
       - name: Archive logs and debug output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs.${{ matrix.IMPL }}
           path: |
@@ -166,7 +166,7 @@ jobs:
           sudo apt install make -y
           sudo apt install python3 -y
           sudo ln -s /usr/bin/python3 /usr/bin/python
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build
         shell: wsl-bash {0}
         run: |
@@ -203,7 +203,7 @@ jobs:
         if: failure()
         run: cat *.debug
       - name: Archive logs and debug output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs.${{ matrix.IMPL }}
           path: |
