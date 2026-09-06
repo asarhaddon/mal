@@ -387,19 +387,7 @@ class Mal.Main : GLib.Object {
         env.set(new Mal.Sym("*ARGV*"), new Mal.List(ARGV));
 
         if (args.length > 1) {
-            var contents = new GLib.List<Mal.Val>();
-            contents.prepend(new Mal.String(args[1]));
-            contents.prepend(new Mal.Sym("load-file"));
-            try {
-                EVAL(new Mal.List(contents), env);
-            } catch (Mal.Error.EXCEPTION_THROWN exc) {
-                GLib.stderr.printf(
-                    "uncaught exception: %s\n",
-                    pr_str(Mal.BuiltinFunctionThrow.thrown_value(exc)));
-            } catch (Mal.Error err) {
-                GLib.stderr.printf("%s\n", err.message);
-                return 1;
-            }
+            setup("(load-file \"%s\")".printf(args[1]), env);
         } else {
             setup("(println (str \"Mal [\" *host-language* \"]\"))", env);
             while (!eof) {
