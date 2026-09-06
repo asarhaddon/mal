@@ -587,10 +587,7 @@ class Mal.BuiltinFunctionCons : Mal.BuiltinFunction {
         var first = args.vs.data;
         var rest = args.vs.next.data as Mal.Listlike;
         if (rest == null) {
-            if (args.vs.next.data is Mal.Nil)
-                rest = new Mal.List.empty();
-            else
-                throw new Mal.Error.BAD_PARAMS("%s: expected a list", name());
+            throw new Mal.Error.BAD_PARAMS("%s: expected a list", name());
         }
         var newlist = new Mal.List.empty();
         newlist.vs.append(first);
