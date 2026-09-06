@@ -1,8 +1,7 @@
 abstract class Mal.BuiltinFunctionDyadicArithmetic : Mal.BuiltinFunction {
     public abstract int64 result(int64 a, int64 b);
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name());
+        check_arg_count(2, args);
         Mal.Num a = args.vs.data as Mal.Num;
         Mal.Num b = args.vs.next.data as Mal.Num;
         if (a == null || b == null)
@@ -95,8 +94,7 @@ class Mal.BuiltinFunctionReadString : Mal.BuiltinFunction {
     }
     public override string name() { return "read-string"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
+        check_arg_count(1, args);
         var arg1 = args.vs.data as Mal.String;
         if (arg1 == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
@@ -110,8 +108,7 @@ class Mal.BuiltinFunctionSlurp : Mal.BuiltinFunction {
     }
     public override string name() { return "slurp"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
+        check_arg_count(1, args);
         var arg1 = args.vs.data as Mal.String;
         if (arg1 == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
@@ -143,8 +140,7 @@ class Mal.BuiltinFunctionListP : Mal.BuiltinFunction {
     }
     public override string name() { return "list?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.List);
     }
 }
@@ -155,8 +151,7 @@ class Mal.BuiltinFunctionSequentialP : Mal.BuiltinFunction {
     }
     public override string name() { return "sequential?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.List ||
                             args.vs.data is Mal.Vector);
     }
@@ -168,8 +163,7 @@ class Mal.BuiltinFunctionNilP : Mal.BuiltinFunction {
     }
     public override string name() { return "nil?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.Nil);
     }
 }
@@ -180,8 +174,7 @@ class Mal.BuiltinFunctionTrueP : Mal.BuiltinFunction {
     }
     public override string name() { return "true?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         var arg1 = args.vs.data as Mal.Bool;
         return new Mal.Bool(arg1 != null && arg1.v);
     }
@@ -193,8 +186,7 @@ class Mal.BuiltinFunctionFalseP : Mal.BuiltinFunction {
     }
     public override string name() { return "false?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         var arg1 = args.vs.data as Mal.Bool;
         return new Mal.Bool(arg1 != null && !arg1.v);
     }
@@ -206,8 +198,7 @@ class Mal.BuiltinFunctionNumberP : Mal.BuiltinFunction {
     }
     public override string name() { return "number?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.Num);
     }
 }
@@ -218,8 +209,7 @@ class Mal.BuiltinFunctionStringP : Mal.BuiltinFunction {
     }
     public override string name() { return "string?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.String);
     }
 }
@@ -230,8 +220,7 @@ class Mal.BuiltinFunctionSymbolP : Mal.BuiltinFunction {
     }
     public override string name() { return "symbol?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.Sym);
     }
 }
@@ -242,8 +231,7 @@ class Mal.BuiltinFunctionKeywordP : Mal.BuiltinFunction {
     }
     public override string name() { return "keyword?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.Keyword);
     }
 }
@@ -268,8 +256,7 @@ class Mal.BuiltinFunctionVectorP : Mal.BuiltinFunction {
     }
     public override string name() { return "vector?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.Vector);
     }
 }
@@ -299,8 +286,7 @@ class Mal.BuiltinFunctionMapP : Mal.BuiltinFunction {
     }
     public override string name() { return "map?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.Hashmap);
     }
 }
@@ -311,8 +297,7 @@ class Mal.BuiltinFunctionEmptyP : Mal.BuiltinFunction {
     }
     public override string name() { return "empty?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         var list = args.vs.data as Mal.Listlike;
         if (list == null)
             throw new Mal.Error.BAD_PARAMS(
@@ -327,8 +312,7 @@ class Mal.BuiltinFunctionFnP : Mal.BuiltinFunction {
     }
     public override string name() { return "fn?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         if (args.vs.data is Mal.BuiltinFunction)
             return new Mal.Bool(true);
         var fn = args.vs.data as Mal.Function;
@@ -342,8 +326,7 @@ class Mal.BuiltinFunctionMacroP : Mal.BuiltinFunction {
     }
     public override string name() { return "macro?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         var fn = args.vs.data as Mal.Function;
         return new Mal.Bool(fn != null && fn.is_macro);
     }
@@ -355,8 +338,7 @@ class Mal.BuiltinFunctionCount : Mal.BuiltinFunction {
     }
     public override string name() { return "count"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         if (args.vs.data is Mal.Nil)
             return new Mal.Num(0);     // nil is treated like ()
         var l = args.vs.data as Mal.List;
@@ -442,9 +424,7 @@ class Mal.BuiltinFunctionEQ : Mal.BuiltinFunction {
         return false;
     }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(2, args);
         return new Mal.Bool(eq(args.vs.data, args.vs.next.data));
     }
 }
@@ -452,8 +432,7 @@ class Mal.BuiltinFunctionEQ : Mal.BuiltinFunction {
 abstract class Mal.BuiltinFunctionNumberCmp : Mal.BuiltinFunction {
     public abstract bool result(int64 a, int64 b);
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name());
+        check_arg_count(2, args);
         Mal.Num a = args.vs.data as Mal.Num;
         Mal.Num b = args.vs.next.data as Mal.Num;
         if (a == null || b == null)
@@ -500,8 +479,7 @@ class Mal.BuiltinFunctionAtom : Mal.BuiltinFunction {
     }
     public override string name() { return "atom"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Atom(args.vs.data);
     }
 }
@@ -512,8 +490,7 @@ class Mal.BuiltinFunctionAtomP : Mal.BuiltinFunction {
     }
     public override string name() { return "atom?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return new Mal.Bool(args.vs.data is Mal.Atom);
     }
 }
@@ -524,8 +501,7 @@ class Mal.BuiltinFunctionDeref : Mal.BuiltinFunction {
     }
     public override string name() { return "deref"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         var atom = args.vs.data as Mal.Atom;
         if (atom == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected an atom", name());
@@ -539,9 +515,7 @@ class Mal.BuiltinFunctionReset : Mal.BuiltinFunction {
     }
     public override string name() { return "reset!"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(2, args);
         var atom = args.vs.data as Mal.Atom;
         if (atom == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected an atom", name());
@@ -591,9 +565,7 @@ class Mal.BuiltinFunctionCons : Mal.BuiltinFunction {
     }
     public override string name() { return "cons"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(2, args);
         var first = args.vs.data;
         var rest = args.vs.next.data as Mal.Listlike;
         if (rest == null) {
@@ -633,8 +605,7 @@ class Mal.BuiltinFunctionVec : Mal.BuiltinFunction {
     }
     public override string name() { return "vec"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         var a0 = args.vs.data;
         var a0lst = a0 as Mal.List;
         if (a0lst != null) {
@@ -657,9 +628,7 @@ class Mal.BuiltinFunctionNth : Mal.BuiltinFunction {
     }
     public override string name() { return "nth"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(2, args);
         var list = args.vs.data as Mal.Listlike;
         var index = args.vs.next.data as Mal.Num;
         if (list == null || index == null)
@@ -698,9 +667,7 @@ class Mal.BuiltinFunctionFirst : Mal.BuiltinFunction {
     }
     public override string name() { return "first"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(1, args);
         var list = args.vs.data as Mal.Listlike;
         if (list == null)
             throw new Mal.Error.BAD_PARAMS(
@@ -718,9 +685,7 @@ class Mal.BuiltinFunctionRest : Mal.BuiltinFunction {
     }
     public override string name() { return "rest"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(1, args);
         var list = args.vs.data as Mal.Listlike;
         if (list == null)
             throw new Mal.Error.BAD_PARAMS(
@@ -756,8 +721,7 @@ class Mal.BuiltinFunctionThrow : Mal.BuiltinFunction {
 
     public override string name() { return "throw"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         assert(curr_exception == null);
         curr_exception = args.vs.data;
         throw new Mal.Error.EXCEPTION_THROWN("core function throw called");
@@ -795,9 +759,7 @@ class Mal.BuiltinFunctionMap : Mal.BuiltinFunction {
     }
     public override string name() { return "map"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(2, args);
         var function = args.vs.data;
         var list = args.vs.next.data as Mal.Listlike;
         if (list == null)
@@ -819,8 +781,7 @@ class Mal.BuiltinFunctionSymbol : Mal.BuiltinFunction {
     }
     public override string name() { return "symbol"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
+        check_arg_count(1, args);
         var s = args.vs.data as Mal.String;
         if (s == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected a string", name());
@@ -834,9 +795,8 @@ class Mal.BuiltinFunctionKeyword : Mal.BuiltinFunction {
     }
     public override string name() { return "keyword"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
-        else if (args.vs.data is Mal.Keyword)
+        check_arg_count(1, args);
+        if (args.vs.data is Mal.Keyword)
             return args.vs.data;
         var arg1 = args.vs.data as Mal.String;
         if (arg1 == null)
@@ -914,9 +874,7 @@ class Mal.BuiltinFunctionGetFn : Mal.BuiltinFunction {
     }
     public override string name() { return "get"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(2, args);
         if (args.vs.data is Mal.Nil)
             return new Mal.Nil();
         var map = args.vs.data as Mal.Hashmap;
@@ -938,9 +896,7 @@ class Mal.BuiltinFunctionContains : Mal.BuiltinFunction {
     }
     public override string name() { return "contains?"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected two arguments", name());
+        check_arg_count(2, args);
         if (args.vs.data is Mal.Nil)
             return new Mal.Bool(false);
         var map = args.vs.data as Mal.Hashmap;
@@ -962,9 +918,7 @@ class Mal.BuiltinFunctionKeys : Mal.BuiltinFunction {
     }
     public override string name() { return "keys"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected one argument", name());
+        check_arg_count(1, args);
         var keys = new Mal.List.empty();
         if (args.vs.data is Mal.Nil)
             return keys;
@@ -984,9 +938,7 @@ class Mal.BuiltinFunctionVals : Mal.BuiltinFunction {
     }
     public override string name() { return "vals"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected one argument", name());
+        check_arg_count(1, args);
         var vals = new Mal.List.empty();
         if (args.vs.data is Mal.Nil)
             return vals;
@@ -1006,9 +958,7 @@ class Mal.BuiltinFunctionReadline : Mal.BuiltinFunction {
     }
     public override string name() { return "readline"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected one argument", name());
+        check_arg_count(1, args);
         string prompt = "";
         var arg1 = args.vs.data as Mal.String;
         if (arg1 != null)
@@ -1029,9 +979,7 @@ class Mal.BuiltinFunctionMeta : Mal.BuiltinFunction {
     }
     public override string name() { return "meta"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected one argument", name());
+        check_arg_count(1, args);
         var vwm = args.vs.data as Mal.ValWithMetadata;
         if (vwm == null || vwm.metadata == null)
             return new Mal.Nil();
@@ -1045,9 +993,7 @@ class Mal.BuiltinFunctionWithMeta : Mal.BuiltinFunction {
     }
     public override string name() { return "with-meta"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected one argument", name());
+        check_arg_count(2, args);
         var vwm = args.vs.data as Mal.ValWithMetadata;
         if (vwm == null)
             throw new Mal.Error.BAD_PARAMS(
@@ -1064,9 +1010,7 @@ class Mal.BuiltinFunctionTimeMs : Mal.BuiltinFunction {
     }
     public override string name() { return "time-ms"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 0)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected no arguments", name());
+        check_arg_count(0, args);
         return new Mal.Num(GLib.get_real_time() / 1000);
     }
 }
@@ -1110,9 +1054,7 @@ class Mal.BuiltinFunctionSeq : Mal.BuiltinFunction {
     }
     public override string name() { return "seq"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected one argument", name());
+        check_arg_count(1, args);
         Mal.List toret = args.vs.data as Mal.List;
         if (toret == null) {
             toret = new Mal.List.empty();

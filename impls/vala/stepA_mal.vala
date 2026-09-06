@@ -6,8 +6,7 @@ class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
     }
     public override string name() { return "eval"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1)
-            throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
+        check_arg_count(1, args);
         return Mal.Main.EVAL(args.vs.data, env);
     }
 }

@@ -224,6 +224,12 @@ abstract class Mal.BuiltinFunction : Mal.ValWithMetadata {
     public abstract string name();
     public abstract Mal.Val call(Mal.List args) throws Mal.Error;
     public override void gc_traverse_m(GC.Object.VisitorFunc visit) {}
+    public void check_arg_count(uint expected, Mal.List got) throws Mal.Error {
+        if (got.vs.length() != expected)
+            throw new Mal.Error.BAD_PARAMS
+                ("%s: expected %u argument(s), got: '%s'",
+                 name(), expected, pr_list(got, true, " "));
+    }
 }
 
 class Mal.Function : Mal.ValWithMetadata {
