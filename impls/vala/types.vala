@@ -39,6 +39,10 @@ class Mal.Bool : Mal.Hashable {
 // make that easy, Mal.Nil also derives from Mal.Listlike.
 abstract class Mal.Listlike : Mal.ValWithMetadata {
     public abstract Mal.Iterator iter();
+    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+        for (var it = iter(); it.nonempty(); it.step())
+            visit(it.deref());
+    }
 }
 
 abstract class Mal.Iterator : GLib.Object {
@@ -69,7 +73,6 @@ class Mal.Nil : Mal.Listlike {
     public override bool truth_value() { return false; }
     public override Mal.Iterator iter() { return new Mal.NilIterator(); }
     public override Mal.ValWithMetadata copy() { return new Mal.Nil(); }
-    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {}
 }
 
 class Mal.NilIterator : Mal.Iterator {
@@ -94,10 +97,6 @@ class Mal.List : Mal.Listlike {
     public override Mal.ValWithMetadata copy() {
         return new Mal.List(vs);
     }        
-    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
-        foreach (var v in vs)
-            visit(v);
-    }
 }
 
 class Mal.ListIterator : Mal.Iterator {
@@ -138,10 +137,6 @@ class Mal.Vector : Mal.Listlike {
     public new void @set(uint pos, Mal.Val v) {
         assert(pos < rs.length);
         rs[pos].v = v;
-    }
-    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
-        foreach (var r in rs)
-            visit(r.v);
     }
 }
 
