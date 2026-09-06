@@ -565,6 +565,8 @@ class Mal.BuiltinFunctionSwap : Mal.BuiltinFunction {
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected at least two arguments", name());
         var atom = args.vs.data as Mal.Atom;
+        if (atom == null)
+            throw new Mal.Error.BAD_PARAMS("%s: expected an atom", name());
         var function = args.vs.next.data;
         var fnargs = args.vs.next.next.copy();
         fnargs.prepend(atom.v);
