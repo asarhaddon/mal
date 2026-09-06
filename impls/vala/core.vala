@@ -1148,74 +1148,75 @@ class Mal.BuiltinFunctionSeq : Mal.BuiltinFunction {
 }
 
 class Mal.Core {
-    public static GLib.HashTable<string, Mal.Val> ns;
 
-    private static void add_builtin(Mal.BuiltinFunction f) {
-        ns[f.name()] = f;
+    // Avoid a global variable, that would artificially increase the
+    // number of roots when debugging the garbage collector.
+
+    private static void add_builtin(Mal.Env env, Mal.BuiltinFunction f) {
+        env.set(new Mal.Sym(f.name()), f);
     }
 
-    public static void make_ns() {
-        ns = new GLib.HashTable<string, Val>(str_hash, str_equal);
-        add_builtin(new BuiltinFunctionAdd());
-        add_builtin(new BuiltinFunctionSub());
-        add_builtin(new BuiltinFunctionMul());
-        add_builtin(new BuiltinFunctionDiv());
-        add_builtin(new BuiltinFunctionPrStr());
-        add_builtin(new BuiltinFunctionStr());
-        add_builtin(new BuiltinFunctionPrn());
-        add_builtin(new BuiltinFunctionPrintln());
-        add_builtin(new BuiltinFunctionReadString());
-        add_builtin(new BuiltinFunctionSlurp());
-        add_builtin(new BuiltinFunctionList());
-        add_builtin(new BuiltinFunctionListP());
-        add_builtin(new BuiltinFunctionNilP());
-        add_builtin(new BuiltinFunctionTrueP());
-        add_builtin(new BuiltinFunctionFalseP());
-        add_builtin(new BuiltinFunctionNumberP());
-        add_builtin(new BuiltinFunctionStringP());
-        add_builtin(new BuiltinFunctionSymbol());
-        add_builtin(new BuiltinFunctionSymbolP());
-        add_builtin(new BuiltinFunctionKeyword());
-        add_builtin(new BuiltinFunctionKeywordP());
-        add_builtin(new BuiltinFunctionVector());
-        add_builtin(new BuiltinFunctionVectorP());
-        add_builtin(new BuiltinFunctionSequentialP());
-        add_builtin(new BuiltinFunctionHashMap());
-        add_builtin(new BuiltinFunctionMapP());
-        add_builtin(new BuiltinFunctionEmptyP());
-        add_builtin(new BuiltinFunctionFnP());
-        add_builtin(new BuiltinFunctionMacroP());
-        add_builtin(new BuiltinFunctionCount());
-        add_builtin(new BuiltinFunctionEQ());
-        add_builtin(new BuiltinFunctionLT());
-        add_builtin(new BuiltinFunctionLE());
-        add_builtin(new BuiltinFunctionGT());
-        add_builtin(new BuiltinFunctionGE());
-        add_builtin(new BuiltinFunctionAtom());
-        add_builtin(new BuiltinFunctionAtomP());
-        add_builtin(new BuiltinFunctionDeref());
-        add_builtin(new BuiltinFunctionReset());
-        add_builtin(new BuiltinFunctionSwap());
-        add_builtin(new BuiltinFunctionCons());
-        add_builtin(new BuiltinFunctionConcat());
-        add_builtin(new BuiltinFunctionVec());
-        add_builtin(new BuiltinFunctionNth());
-        add_builtin(new BuiltinFunctionFirst());
-        add_builtin(new BuiltinFunctionRest());
-        add_builtin(new BuiltinFunctionThrow());
-        add_builtin(new BuiltinFunctionApply());
-        add_builtin(new BuiltinFunctionMap());
-        add_builtin(new BuiltinFunctionAssoc());
-        add_builtin(new BuiltinFunctionDissoc());
-        add_builtin(new BuiltinFunctionGetFn());
-        add_builtin(new BuiltinFunctionContains());
-        add_builtin(new BuiltinFunctionKeys());
-        add_builtin(new BuiltinFunctionVals());
-        add_builtin(new BuiltinFunctionReadline());
-        add_builtin(new BuiltinFunctionMeta());
-        add_builtin(new BuiltinFunctionWithMeta());
-        add_builtin(new BuiltinFunctionTimeMs());
-        add_builtin(new BuiltinFunctionConj());
-        add_builtin(new BuiltinFunctionSeq());
+    public static void make_ns(Mal.Env env) {
+        add_builtin(env, new BuiltinFunctionAdd());
+        add_builtin(env, new BuiltinFunctionSub());
+        add_builtin(env, new BuiltinFunctionMul());
+        add_builtin(env, new BuiltinFunctionDiv());
+        add_builtin(env, new BuiltinFunctionPrStr());
+        add_builtin(env, new BuiltinFunctionStr());
+        add_builtin(env, new BuiltinFunctionPrn());
+        add_builtin(env, new BuiltinFunctionPrintln());
+        add_builtin(env, new BuiltinFunctionReadString());
+        add_builtin(env, new BuiltinFunctionSlurp());
+        add_builtin(env, new BuiltinFunctionList());
+        add_builtin(env, new BuiltinFunctionListP());
+        add_builtin(env, new BuiltinFunctionNilP());
+        add_builtin(env, new BuiltinFunctionTrueP());
+        add_builtin(env, new BuiltinFunctionFalseP());
+        add_builtin(env, new BuiltinFunctionNumberP());
+        add_builtin(env, new BuiltinFunctionStringP());
+        add_builtin(env, new BuiltinFunctionSymbol());
+        add_builtin(env, new BuiltinFunctionSymbolP());
+        add_builtin(env, new BuiltinFunctionKeyword());
+        add_builtin(env, new BuiltinFunctionKeywordP());
+        add_builtin(env, new BuiltinFunctionVector());
+        add_builtin(env, new BuiltinFunctionVectorP());
+        add_builtin(env, new BuiltinFunctionSequentialP());
+        add_builtin(env, new BuiltinFunctionHashMap());
+        add_builtin(env, new BuiltinFunctionMapP());
+        add_builtin(env, new BuiltinFunctionEmptyP());
+        add_builtin(env, new BuiltinFunctionFnP());
+        add_builtin(env, new BuiltinFunctionMacroP());
+        add_builtin(env, new BuiltinFunctionCount());
+        add_builtin(env, new BuiltinFunctionEQ());
+        add_builtin(env, new BuiltinFunctionLT());
+        add_builtin(env, new BuiltinFunctionLE());
+        add_builtin(env, new BuiltinFunctionGT());
+        add_builtin(env, new BuiltinFunctionGE());
+        add_builtin(env, new BuiltinFunctionAtom());
+        add_builtin(env, new BuiltinFunctionAtomP());
+        add_builtin(env, new BuiltinFunctionDeref());
+        add_builtin(env, new BuiltinFunctionReset());
+        add_builtin(env, new BuiltinFunctionSwap());
+        add_builtin(env, new BuiltinFunctionCons());
+        add_builtin(env, new BuiltinFunctionConcat());
+        add_builtin(env, new BuiltinFunctionVec());
+        add_builtin(env, new BuiltinFunctionNth());
+        add_builtin(env, new BuiltinFunctionFirst());
+        add_builtin(env, new BuiltinFunctionRest());
+        add_builtin(env, new BuiltinFunctionThrow());
+        add_builtin(env, new BuiltinFunctionApply());
+        add_builtin(env, new BuiltinFunctionMap());
+        add_builtin(env, new BuiltinFunctionAssoc());
+        add_builtin(env, new BuiltinFunctionDissoc());
+        add_builtin(env, new BuiltinFunctionGetFn());
+        add_builtin(env, new BuiltinFunctionContains());
+        add_builtin(env, new BuiltinFunctionKeys());
+        add_builtin(env, new BuiltinFunctionVals());
+        add_builtin(env, new BuiltinFunctionReadline());
+        add_builtin(env, new BuiltinFunctionMeta());
+        add_builtin(env, new BuiltinFunctionWithMeta());
+        add_builtin(env, new BuiltinFunctionTimeMs());
+        add_builtin(env, new BuiltinFunctionConj());
+        add_builtin(env, new BuiltinFunctionSeq());
     }
 }

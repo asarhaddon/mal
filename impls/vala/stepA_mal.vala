@@ -369,9 +369,7 @@ class Mal.Main : GLib.Object {
         var env = new Mal.Env();
         var root = new GC.Root(env); (void)root;
 
-        Mal.Core.make_ns();
-        foreach (var key in Mal.Core.ns.get_keys())
-            env.set(new Mal.Sym(key), Mal.Core.ns[key]);
+        Mal.Core.make_ns(env);
         env.set(new Mal.Sym("eval"), new Mal.BuiltinFunctionEval(env));
         env.set(new Mal.Sym("*host-language*"), new Mal.String("vala"));
 
