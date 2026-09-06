@@ -41,14 +41,15 @@ class Mal.Main : GLib.Object {
     }
 
     private static Mal.Val define_eval(Mal.Val key, Mal.Val value,
-                                       Mal.Env env)
+                                       Mal.Env env,
+                                       string context)
     throws Mal.Error {
         var rootk = new GC.Root(key); (void)rootk;
         var roote = new GC.Root(env); (void)roote;
         var symkey = key as Mal.Sym;
         if (symkey == null)
             throw new Mal.Error.BAD_PARAMS(
-                "let*: expected a symbol to define");
+                "%s: expected a symbol to define", context);
         var val = EVAL(value, env);
         env.set(symkey, val);
         return val;
@@ -182,7 +183,7 @@ class Mal.Main : GLib.Object {
                             throw new Mal.Error.BAD_PARAMS(
                                 "def!: expected two values");
                         return define_eval(list.next.data, list.next.next.data,
-                                           env);
+                                           env, "def!");
                     case "defmacro!":
                         if (list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
@@ -213,7 +214,7 @@ class Mal.Main : GLib.Object {
                                     throw new Mal.Error.BAD_PARAMS(
                                         "let*: expected an even-length list" +
                                         " of definitions");
-                                define_eval(k, i.deref(), env);
+                                define_eval(k, i.deref(), env, "let*");
                             }
                         } else {
                             throw new Mal.Error.BAD_PARAMS(
