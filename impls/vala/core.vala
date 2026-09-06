@@ -430,16 +430,6 @@ class Mal.BuiltinFunctionEQ : Mal.BuiltinFunction {
             }
             return true;
         }
-        if (a is Mal.BuiltinFunction && b is Mal.BuiltinFunction) {
-            return ((a as Mal.BuiltinFunction).name() ==
-                    (b as Mal.BuiltinFunction).name());
-        }
-        if (a is Mal.Function && b is Mal.Function) {
-            var af = a as Mal.Function;
-            var bf = b as Mal.Function;
-            return (eq(af.parameters, bf.parameters) &&
-                    eq(af.body, bf.body));
-        }
         return false;
     }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
