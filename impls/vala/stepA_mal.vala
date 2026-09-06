@@ -380,10 +380,8 @@ class Mal.Main : GLib.Object {
         setup("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", env);
 
         var ARGV = new GLib.List<Mal.Val>();
-        if (args.length > 1) {
-            for (int i = args.length - 1; i >= 2; i--)
-                ARGV.prepend(new Mal.String(args[i]));
-        }
+        for (int i = 2; i < args.length; ++i)
+            ARGV.append(new Mal.String(args[i]));
         env.set(new Mal.Sym("*ARGV*"), new Mal.List(ARGV));
 
         if (args.length > 1) {
