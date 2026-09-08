@@ -89,9 +89,7 @@ class Mal.List : Mal.Listlike {
     public List.empty() {
     }
     public override Mal.Iterator iter() {
-        var toret = new Mal.ListIterator();
-        toret.node = vs;
-        return toret;
+        return new Mal.ListIterator(this);
     }
     public override Mal.ValWithMetadata copy() {
         var result = new Mal.List.empty();
@@ -101,8 +99,13 @@ class Mal.List : Mal.Listlike {
 }
 
 class Mal.ListIterator : Mal.Iterator {
-    // This reference should ideally not be weak.
-    public unowned GLib.List<weak Mal.Val>? node;
+    // This reference ensures the container is collected after the iterator.
+    private Mal.List container;
+    private weak GLib.List<weak Val>? node;
+    public ListIterator(Mal.List container_) {
+        container = container_;
+        node = container_.vs;
+    }
     public override Mal.Val? deref() {
         return node == null ? null : node.data;
     }
@@ -119,17 +122,13 @@ class Mal.Vector : Mal.Listlike {
     public Vector.with_size(uint size) {
         rs = new Ref[size];
     }
-    private Vector.copy_of(Vector v) {
-        rs = v.rs;
-    }
     public override Mal.Iterator iter() {
-        var toret = new Mal.VectorIterator();
-        toret.vec = this;
-        toret.pos = 0;
-        return toret;
+        return new Mal.VectorIterator(this);
     }
     public override Mal.ValWithMetadata copy() {
-        return new Mal.Vector.copy_of(this);
+        var copied = new Vector();
+        copied.rs = rs;
+        return copied;
     }
     public uint length { get { return rs.length; } }
     public new Mal.Val @get(uint pos) {
@@ -143,8 +142,13 @@ class Mal.Vector : Mal.Listlike {
 }
 
 class Mal.VectorIterator : Mal.Iterator {
-    public Mal.Vector vec;
-    public int pos;
+    // This reference ensures the container is collected after the iterator.
+    private Mal.Vector vec;
+    private int pos;
+    public VectorIterator(Mal.Vector container_) {
+        vec = container_;
+        pos = 0;
+    }
     public override Mal.Val? deref() {
         return pos >= vec.length ? null : vec[pos];
     }
