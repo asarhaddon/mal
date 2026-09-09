@@ -53,8 +53,13 @@ Design notes on the implementation:
   element of the cycle could end up being the last one referred to
   from elsewhere, so you can't break the link by just making the right
   one of those references weak. So instead there's a small garbage
-  collector in `gc.vala`, which works by being the only part of the
-  program that keeps a non-weak reference to any `Mal.Val` or
-  `Mal.Env`: it links all GCable objects together into a list, and
-  when the collector runs, it unlinks dead objects from that list and
-  allows Vala's normal reference counting to free them.
+  collector in `gc.vala`.
+
+  References to Mal objects and environments are reference-counted as
+  usual, but the references *between* objects are weak.  The garbage
+  collector tracks all objects, and removes the one that only it can
+  reach.
+
+  There are also a few places using weak references inside the code
+  for practical reasons.  This is safe as long as no garbage
+  collection happens during the variable lifetime.

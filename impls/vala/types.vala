@@ -27,7 +27,6 @@ class Mal.Bool : Mal.Hashable {
         hashkey = value ? "bt" : "bf";
     }
     public override bool truth_value() { return v; }
-    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 // Mal.Listlike is a subclass of Mal.Val which includes both lists and
@@ -38,9 +37,10 @@ class Mal.Bool : Mal.Hashable {
 // make that easy, Mal.Nil also derives from Mal.Listlike.
 abstract class Mal.Listlike : Mal.ValWithMetadata {
     public abstract Mal.Iterator iter();
-    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+    public override void gc_traverse() {
+        base.gc_traverse();
         for (var it = iter(); it.nonempty(); it.step())
-            visit(it.deref());
+            it.deref().visit();
     }
 }
 
@@ -56,15 +56,15 @@ abstract class Mal.Iterator : GLib.Object {
 // must provide a copy() method, because with-meta has to make a copy
 // of the value with new metadata.
 abstract class Mal.ValWithMetadata : Mal.Val {
-    public Mal.Val? metadata;
+    public weak Mal.Val? metadata;
     construct {
         metadata = null;
     }
     public abstract Mal.ValWithMetadata copy();
-    public abstract void gc_traverse_m(GC.Object.VisitorFunc visit);
-    public override void gc_traverse(GC.Object.VisitorFunc visit) {
-        visit(metadata);
-        gc_traverse_m(visit);
+    public override void gc_traverse() {
+        base.gc_traverse();
+        if (metadata != null)
+            metadata.visit();
     }
 }
 
@@ -94,12 +94,15 @@ class Mal.List : Mal.Listlike {
         return toret;
     }
     public override Mal.ValWithMetadata copy() {
-        return new Mal.List(vs);
+        var result = new Mal.List.empty();
+        result.vs = vs.copy();
+        return result;
     }        
 }
 
 class Mal.ListIterator : Mal.Iterator {
-    public unowned GLib.List<Mal.Val>? node;
+    // This reference should ideally not be weak.
+    public unowned GLib.List<weak Mal.Val>? node;
     public override Mal.Val? deref() {
         return node == null ? null : node.data;
     }
@@ -157,12 +160,10 @@ class Mal.Num : Mal.Hashable {
         v = value;
         hashkey = "N" + v.to_string();
     }
-    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 abstract class Mal.SymBase : Mal.Hashable {
     public string v;
-    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 class Mal.Sym : Mal.SymBase {
@@ -185,7 +186,6 @@ class Mal.String : Mal.Hashable {
         v = value;
         hashkey = "\"" + v;
     }
-    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 class Mal.Hashmap : Mal.ValWithMetadata {
@@ -211,10 +211,11 @@ class Mal.Hashmap : Mal.ValWithMetadata {
         toret.vs = vs;
         return toret;
     }        
-    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+    public override void gc_traverse() {
+        base.gc_traverse();
         foreach (var key in vs.get_keys()) {
-            visit(key);
-            visit(vs[key]);
+            key.visit();
+            vs[key].visit();
         }
     }
 }
@@ -222,7 +223,6 @@ class Mal.Hashmap : Mal.ValWithMetadata {
 abstract class Mal.BuiltinFunction : Mal.ValWithMetadata {
     public abstract string name();
     public abstract Mal.Val call(Mal.List args) throws Mal.Error;
-    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {}
     public void check_arg_count(uint expected, Mal.List got) throws Mal.Error {
         if (got.vs.length() != expected)
             throw new Mal.Error.BAD_PARAMS
@@ -254,11 +254,12 @@ class Mal.Function : Mal.ValWithMetadata {
         return new Mal.Nil(); // Silent a warning
 #endif
     }
-    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+    public override void gc_traverse() {
+        base.gc_traverse();
 #if !NO_ENV
-        visit(parameters);
-        visit(body);
-        visit(env);
+        parameters.visit();
+        body.visit();
+        env.visit();
 #endif
     }
 }
@@ -266,7 +267,8 @@ class Mal.Function : Mal.ValWithMetadata {
 class Mal.Atom : Mal.Val {
     public weak Mal.Val v;
     public Atom(Mal.Val v_) { v = v_; }
-    public override void gc_traverse(GC.Object.VisitorFunc visit) {
-        visit(v);
+    public override void gc_traverse() {
+        base.gc_traverse();
+        v.visit();
     }
 }

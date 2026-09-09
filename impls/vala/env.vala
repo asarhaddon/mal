@@ -15,11 +15,13 @@ class Mal.Env : GC.Object {
         outer = null;
     }
 
-    public override void gc_traverse(GC.Object.VisitorFunc visit) {
-        visit(outer);
+    public override void gc_traverse() {
+        base.gc_traverse();
+        if (outer != null)
+            outer.visit();
         foreach (var key in data.get_keys()) {
-            visit(key);
-            visit(data[key]);
+            key.visit();
+            data[key].visit();
         }
     }
 
@@ -27,7 +29,7 @@ class Mal.Env : GC.Object {
     throws Mal.Error {
         outer = outer_;
         var binditer = binds.iter();
-        unowned GLib.List<Mal.Val> exprlist = exprs.vs;
+        unowned var exprlist = exprs.vs;
 
         while (binditer.nonempty()) {
             var paramsym = binditer.deref() as Mal.Sym;
@@ -38,7 +40,9 @@ class Mal.Env : GC.Object {
                 if (rest == null || binditer.nonempty())
                     throw new Mal.Error.BAD_PARAMS(
                         "expected exactly one parameter name after &");
-                set(rest as Mal.Sym, new Mal.List(exprlist.copy()));
+                var rest_expr = new Mal.List.empty();
+                rest_expr.vs = exprlist.copy();
+                set(rest as Mal.Sym, rest_expr);
                 return;
             } else {
                 if (exprlist == null)

@@ -1,5 +1,5 @@
 class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
-    public Mal.Env env;
+    public weak Mal.Env env;
     public BuiltinFunctionEval(Mal.Env env_) { env = env_; }
     public override Mal.ValWithMetadata copy() {
         return new Mal.BuiltinFunctionEval(env);
@@ -8,6 +8,10 @@ class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
     public override Mal.Val call(Mal.List args) throws Mal.Error {
         check_arg_count(1, args);
         return Mal.Main.EVAL(args.vs.data, env);
+    }
+    public override void gc_traverse() {
+        base.gc_traverse();
+        env.visit();
     }
 }
 
@@ -43,8 +47,6 @@ class Mal.Main : GLib.Object {
                                        Mal.Env env,
                                        string context)
     throws Mal.Error {
-        var rootk = new GC.Root(key); (void)rootk;
-        var roote = new GC.Root(env); (void)roote;
         var symkey = key as Mal.Sym;
         if (symkey == null)
             throw new Mal.Error.BAD_PARAMS(
@@ -130,11 +132,7 @@ class Mal.Main : GLib.Object {
         // into them don't immediately get garbage-collected.
         Mal.Val ast = ast_;
         Mal.Env env = env_;
-        var ast_root = new GC.Root(ast); (void)ast_root;
-        var env_root = new GC.Root(env); (void)env_root;
         while (true) {
-            ast_root.obj = ast;
-            env_root.obj = env;
             GC.Core.maybe_collect();
 
             if (dbgevalsym == null)
@@ -153,7 +151,6 @@ class Mal.Main : GLib.Object {
             var vec = ast as Mal.Vector;
             if (vec != null) {
                 var result = new Mal.Vector.with_size(vec.length);
-                var root = new GC.Root(result); (void)root;
                 for (var i = 0; i < vec.length; i++)
                     result[i] = EVAL(vec[i], env);
                 return result;
@@ -161,7 +158,6 @@ class Mal.Main : GLib.Object {
             var ast_as_map = ast as Mal.Hashmap;
             if (ast_as_map != null) {
                 var result = new Mal.Hashmap();
-                var root = new GC.Root(result); (void)root;
                 var map = ast_as_map.vs;
                 foreach (var k in map.get_keys())
                     result.insert(k, EVAL(map[k], env));
@@ -169,7 +165,7 @@ class Mal.Main : GLib.Object {
             }
             var ast_as_list = ast as Mal.List;
             if (ast_as_list != null) {
-                unowned GLib.List<Mal.Val> list = ast_as_list.vs;
+                unowned var list = ast_as_list.vs;
                 if (list.first() == null)
                     return ast;
 
@@ -309,7 +305,6 @@ class Mal.Main : GLib.Object {
 
                 Mal.Val firstdata = EVAL(list.first().data, env);
                 var newlist = new Mal.List.empty();
-                var root = new GC.Root(newlist); (void)root;
                 var iter = ast_as_list.iter().step();
 
                 var bf = firstdata as Mal.BuiltinFunction;
@@ -366,7 +361,6 @@ class Mal.Main : GLib.Object {
 
     public static int main(string[] args) {
         var env = new Mal.Env();
-        var root = new GC.Root(env); (void)root;
 
         Mal.Core.make_ns(env);
         env.set(new Mal.Sym("eval"), new Mal.BuiltinFunctionEval(env));
@@ -380,6 +374,7 @@ class Mal.Main : GLib.Object {
         for (int i = 2; i < args.length; ++i)
             ARGV.append(new Mal.String(args[i]));
         env.set(new Mal.Sym("*ARGV*"), new Mal.List(ARGV));
+        ARGV = null; // (def! *ARGV* 0) should deallocate the strings.
 
         if (args.length > 1) {
             setup("(load-file \"%s\")".printf(args[1]), env);
@@ -397,6 +392,13 @@ class Mal.Main : GLib.Object {
                 }
             }
         }
+
+#if GC_STATS
+        stdout.printf("The final object count should be 0\n.");
+        env = null;
+        GC.Core.collect();
+#endif
+
         return 0;
     }
 }

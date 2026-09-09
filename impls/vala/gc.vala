@@ -1,194 +1,117 @@
 abstract class GC.Object : GLib.Object {
-    public GC.Object? next;
-    public unowned GC.Object? prev;
     public bool visited;
 
-    public delegate void VisitorFunc(GC.Object? obj);
-
     construct {
-        next = null;
-        prev = null;
+        visited = false;
         GC.Core.register_object(this);
     }
-    public abstract void gc_traverse(VisitorFunc visitor);
-}
 
-class GC.Root : GLib.Object {
-    public weak GC.Root? next;
-    public weak GC.Root? prev;
+    public void visit() {
+        if (!visited) {
+            visited = true;
+            gc_traverse();
+        }
+    }
 
-    public GC.Object? obj;
-
-    construct { GC.Core.register_root(this); }
-    ~Root() { GC.Core.unregister_root(this); }
-
-    public Root.empty() { obj = null; }
-    public Root(GC.Object? obj_) { obj = obj_; }
+    public virtual void gc_traverse() { }
+    // Should call the method of the base/super/parent class, then
+    // call ref.visit() on each pointer `ref` to a GC.Object the
+    // current instance is holding.
 }
 
 class GC.Core : GLib.Object {
-    private struct ObjectQueue {
-        GC.Object? head;
-        GC.Object? tail;
+    private static Object objects[1000000];
+    private static uint objects_count = 0;
+    // Between two collections, indices from 0 to objects_count - 1
+    // refer to all created Mal.Object instances.
 
-        public void unlink(GC.Object obj_) {
-            GC.Object obj = obj_;
+    // collect() traverses the list, and erases the element which are
+    // the last reference to the instance (triggering the normal
+    // deallocation because of a zero reference count).
 
-            if (obj.prev == null) {
-                assert(obj == head);
-                head = obj.next;
-            }
-            else
-                obj.prev.next = obj.next;
-
-            if (obj.next == null)
-                tail = obj.prev;
-            else
-                obj.next.prev = obj.prev;
-        }
-
-        public void link(GC.Object obj) {
-            if (tail != null) {
-                tail.next = obj;
-                obj.prev = tail;
-            } else {
-                head = obj;
-                obj.prev = null;
-            }
-
-            tail = obj;
-            obj.next = null;
-        }
-    }
-
-    private static ObjectQueue objects;
-    private static weak GC.Root? roots_head;
-    private static uint until_next_collection;
-
-    static construct {
-        objects.head = objects.tail = null;
-        roots_head = null;
-    }
+    // maybe_collect() triggers a collection when objects_count exceeds
+    // until_next_collection, which is twice the objects_count right
+    // after last collection.
+    private static uint until_next_collection = 0;
 
     public static void register_object(GC.Object obj) {
-#if GC_DEBUG
-        stderr.printf("GC: registered %p [%s]\n",
-                      obj, Type.from_instance(obj).name());
-#endif
-        objects.link(obj);
-        if (until_next_collection > 0)
-            until_next_collection--;
-    }
-    public static void register_root(GC.Root root) {
-#if GC_DEBUG
-        stderr.printf("GC: registered root %p\n", root);
-#endif
-        root.next = roots_head;
-        root.prev = null;
-        if (roots_head != null)
-            roots_head.prev = root;
-        roots_head = root;
-    }
-    public static void unregister_root(GC.Root root) {
-#if GC_DEBUG
-        stderr.printf("GC: unregistered root %p\n", root);
-#endif
-        if (root.prev == null)
-            roots_head = root.next;
-        else
-            root.prev.next = root.next;
-        if (root.next != null)
-            root.next.prev = root.prev;
-    }
-
-    private static void statistics(uint before, uint after, uint roots) {
-#if GC_STATS
-        stderr.printf("GC: %u roots, %u -> %u objects\n",
-                      roots, before, after);
-#endif
+        // If this ever fails, increase the size of the objects array.
+        assert(objects_count < objects.length);
+        objects[objects_count++] = obj;
     }
 
     public static void collect() {
-        uint orig = 0;
+        uint remaining = 0;
+
+#if GC_STATS
         uint roots = 0;
+#endif
 
 #if GC_DEBUG
         stderr.printf("GC: started\n");
+        for (uint i = 0; i < objects_count; ++i)
+            assert(!objects[i].visited);
 #endif
-        for (unowned GC.Object obj = objects.head; obj != null; obj = obj.next)
-        {
-            obj.visited = false;
-#if GC_DEBUG
-            stderr.printf("GC: considering %p [%s]\n",
-                          obj, Type.from_instance(obj).name());
-#endif
-            orig++;
-        }
 
-        ObjectQueue after = { null, null };
-        until_next_collection = 0;
-
-        for (unowned GC.Root root = roots_head; root != null; root = root.next)
-        {
-            roots++;
-            if (root.obj != null && !root.obj.visited) {
-                GC.Object obj = root.obj;
-#if GC_DEBUG
-                stderr.printf("GC: root %p -> %p [%s]\n",
-                              root, obj, Type.from_instance(obj).name());
+        for (uint i = 0; i < objects_count; ++i)
+            if (1 < objects[i].ref_count) {
+#if GC_STATS
+                roots++;
 #endif
-                objects.unlink(obj);
-                after.link(obj);
-                obj.visited = true;
-                until_next_collection++;
+                objects[i].visit();
             }
+#if GC_DEBUG
+        //  Do a separate round now so that the objects can be printed
+        //  recursively.  During the deallocation, references owned by
+        //  an object may already be deallocated.
+        for (uint i = 0; i < objects_count; ++i) {
+            string state;
+            if (objects[i].visited) {
+                if (1 < objects[i].ref_count)
+                    state = "root";
+                else
+                    state = "visited";
+            } else {
+                assert(objects[i].ref_count == 1);
+                state = "collected";
+            }
+            unowned var val = objects[i] as Mal.Val; // do not change refcount
+            string image;
+            if (val == null)
+                image = Type.from_instance(objects[i]).name();
+            else
+                image = Mal.pr_str(val);
+            stderr.printf("GC: %p rc=%2u %-9s %s\n", objects[i],
+                          objects[i].ref_count, state, image);
         }
-
-        for (GC.Object? obj = after.head; obj != null; obj = obj.next) {
-#if GC_DEBUG
-            stderr.printf("GC: traversing %p [%s]\n",
-                          obj, Type.from_instance(obj).name());
 #endif
-            obj.gc_traverse((obj2_) => {
-                GC.Object obj2 = obj2_;
-                if (obj2 == null)
-                    return;
-                if (!obj2.visited) {
-#if GC_DEBUG
-                    stderr.printf("GC: %p -> %p [%s]\n",
-                                  obj, obj2, Type.from_instance(obj2).name());
-#endif
-                    objects.unlink(obj2);
-                    after.link(obj2);
-                    obj2.visited = true;
-                    until_next_collection++;
+        for (uint i = 0; i < objects_count; ++i)
+            if (objects[i].visited) {
+                objects[i].visited = false; // prepare next collection
+                if (remaining < i) {
+                    objects[remaining] = objects[i];
+                    objects[i] = null;
                 }
-            });
-        }
-
-        // Manually free everything, to avoid stack overflow while
-        // recursing down the list unreffing them all
-        objects.tail = null;
-        while (objects.head != null) {
-#if GC_DEBUG
-            stderr.printf("GC: collecting %p [%s]\n", objects.head,
-                          Type.from_instance(objects.head).name());
-#endif
-            objects.head = objects.head.next;
-        }
-
-        objects = after;
+                ++remaining;
+            } else
+                objects[i] = null;
 
 #if GC_DEBUG
         stderr.printf("GC: finished\n");
 #endif
 
-        statistics(orig, until_next_collection, roots);
+#if GC_STATS
+        stderr.printf("GC: %u roots, %u -> %u objects\n",
+                      roots, objects_count, remaining);
+#endif
+
+        objects_count = remaining;
+        until_next_collection = remaining << 1;
     }
 
     public static void maybe_collect() {
 #if !GC_ALWAYS
-        if (until_next_collection > 0)
+        if (objects_count < until_next_collection)
             return;
 #endif
         collect();

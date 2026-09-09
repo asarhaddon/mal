@@ -701,7 +701,7 @@ class Mal.BuiltinFunctionThrow : Mal.BuiltinFunction {
     public override Mal.ValWithMetadata copy() {
         return new Mal.BuiltinFunctionThrow();
     }
-    private static Mal.Val? curr_exception;
+    private static weak Mal.Val? curr_exception;
     static construct {
         curr_exception = null;
     }
@@ -725,6 +725,11 @@ class Mal.BuiltinFunctionThrow : Mal.BuiltinFunction {
         assert(curr_exception == null);
         curr_exception = args.vs.data;
         throw new Mal.Error.EXCEPTION_THROWN("core function throw called");
+    }
+    public override void gc_traverse() {
+        base.gc_traverse();
+        if (curr_exception != null)
+            curr_exception.visit();
     }
 }
 
@@ -765,7 +770,6 @@ class Mal.BuiltinFunctionMap : Mal.BuiltinFunction {
         if (list == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected a list", name());
         var result = new Mal.List.empty();
-        var root = new GC.Root(result); (void)root;
         for (var iter = list.iter(); iter.nonempty(); iter.step()) {
             var fnargs = new GLib.List<Mal.Val>();
             fnargs.append(iter.deref());
