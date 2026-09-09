@@ -10,7 +10,7 @@ public errordomain Mal.Error {
 }
 
 abstract class Mal.Val : GC.Object {
-    public abstract bool truth_value();
+    public virtual bool truth_value() { return true; }
 }
 
 abstract class Mal.Hashable : Mal.Val {
@@ -86,7 +86,6 @@ class Mal.List : Mal.Listlike {
     }
     public List.empty() {
     }
-    public override bool truth_value() { return true; }
     public override Mal.Iterator iter() {
         var toret = new Mal.ListIterator();
         toret.node = vs;
@@ -122,7 +121,6 @@ class Mal.Vector : Mal.Listlike {
     private Vector.copy_of(Vector v) {
         rs = v.rs;
     }
-    public override bool truth_value() { return true; }
     public override Mal.Iterator iter() {
         var toret = new Mal.VectorIterator();
         toret.vec = this;
@@ -165,13 +163,11 @@ class Mal.Num : Mal.Hashable {
         v = value;
         hashkey = "N" + v.to_string();
     }
-    public override bool truth_value() { return true; }
     public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 abstract class Mal.SymBase : Mal.Hashable {
     public string v;
-    public override bool truth_value() { return true; }
     public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
@@ -195,7 +191,6 @@ class Mal.String : Mal.Hashable {
         v = value;
         hashkey = "\"" + v;
     }
-    public override bool truth_value() { return true; }
     public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
@@ -217,7 +212,6 @@ class Mal.Hashmap : Mal.ValWithMetadata {
             throw new Error.HASH_KEY_TYPE_ERROR("bad type as hash key");
         vs.remove(hkey);
     }
-    public override bool truth_value() { return true; }
     public override Mal.ValWithMetadata copy() {
         var toret = new Mal.Hashmap();
         toret.vs = vs;
@@ -234,7 +228,6 @@ class Mal.Hashmap : Mal.ValWithMetadata {
 abstract class Mal.BuiltinFunction : Mal.ValWithMetadata {
     public abstract string name();
     public abstract Mal.Val call(Mal.List args) throws Mal.Error;
-    public override bool truth_value() { return true; }
     public override void gc_traverse_m(GC.Object.VisitorFunc visit) {}
 }
 
@@ -261,7 +254,6 @@ class Mal.Function : Mal.ValWithMetadata {
             "can't copy a Mal.Function without Mal.Env existing");
 #endif
     }
-    public override bool truth_value() { return true; }
     public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
 #if !NO_ENV
         visit(parameters);
@@ -274,7 +266,6 @@ class Mal.Function : Mal.ValWithMetadata {
 class Mal.Atom : Mal.Val {
     public weak Mal.Val v;
     public Atom(Mal.Val v_) { v = v_; }
-    public override bool truth_value() { return true; }
     public override void gc_traverse(GC.Object.VisitorFunc visit) {
         visit(v);
     }
