@@ -49,12 +49,7 @@ class Mal.BuiltinFunctionPrStr : Mal.BuiltinFunction {
     }
     public override string name() { return "pr-str"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        string result = "";
-        string sep = "";
-        foreach (var value in args.vs) {
-            result += sep + pr_str(value, true);
-            sep = " ";
-        }
+        string result = pr_list(args, true, " ");
         return new Mal.String(result);
     }
 }
@@ -65,10 +60,7 @@ class Mal.BuiltinFunctionStr : Mal.BuiltinFunction {
     }
     public override string name() { return "str"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        string result = "";
-        foreach (var value in args.vs) {
-            result += pr_str(value, false);
-        }
+        string result = pr_list(args, false, "");
         return new Mal.String(result);
     }
 }
@@ -79,11 +71,7 @@ class Mal.BuiltinFunctionPrn : Mal.BuiltinFunction {
     }
     public override string name() { return "prn"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        string sep = "";
-        foreach (var value in args.vs) {
-            stdout.printf("%s%s", sep, pr_str(value, true));
-            sep = " ";
-        }
+        stdout.printf(pr_list(args, true, " "));
         stdout.printf("\n");
         return new Mal.Nil();
     }
@@ -95,11 +83,7 @@ class Mal.BuiltinFunctionPrintln : Mal.BuiltinFunction {
     }
     public override string name() { return "println"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        string sep = "";
-        foreach (var value in args.vs) {
-            stdout.printf("%s%s", sep, pr_str(value, false));
-            sep = " ";
-        }
+        stdout.printf(pr_list(args, false, " "));
         stdout.printf("\n");
         return new Mal.Nil();
     }

@@ -24,18 +24,13 @@ namespace Mal {
                                     replace("\"", "\\\""));
             return s;
         }
-        var l = val as  Mal.Listlike;
+        var l = val as Mal.List;
         if (l != null) {
-            bool vec = val is Mal.Vector;
-            string toret = vec ? "[" : "(";
-            string sep = "";
-            for (var iter = l.iter();
-                 iter.nonempty(); iter.step()) {
-                toret += sep + pr_str(iter.deref(), print_readably);
-                sep = " ";
-            }
-            toret += vec ? "]" : ")";
-            return toret;
+            return "(" + pr_list(l, print_readably, " ") + ")";
+        }
+        var v = val as Mal.Vector;
+        if (v != null) {
+            return "[" + pr_list(v, print_readably, " ") + "]";
         }
         var m = val as Mal.Hashmap;
         if (m != null) {
@@ -64,5 +59,15 @@ namespace Mal {
                 pr_str(a.v, print_readably));
         }
         return "??";
+    }
+
+    string pr_list(Listlike xs, bool print_readably, string separator) {
+        string result = "";
+        for (var iter = xs.iter(); iter.nonempty(); iter.step()) {
+            if (0 != result.length)
+                result += separator;
+            result += pr_str(iter.deref(), print_readably);
+        }
+        return result;
     }
 }
