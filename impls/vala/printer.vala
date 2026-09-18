@@ -56,11 +56,8 @@ namespace Mal {
             return "#<function>";
         }
         var a = val as Mal.Atom;
-        if (a != null) {
-            return "(atom %s)".printf(
-                pr_str(a.v, print_readably));
-        }
-        return "??";
+        assert(a != null);
+        return "(atom %s)".printf(pr_str(a.v, print_readably));
     }
 
     string pr_list(Listlike xs, bool print_readably, string separator) {
