@@ -51,6 +51,8 @@ namespace Mal {
         }
         var mf = val as Mal.Function;
         if (mf != null) {
+            if (mf.is_macro)
+                return "#<macro>";
             return "#<function>";
         }
         var a = val as Mal.Atom;
