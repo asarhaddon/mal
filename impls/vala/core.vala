@@ -1067,9 +1067,7 @@ class Mal.BuiltinFunctionTimeMs : Mal.BuiltinFunction {
         if (args.vs.length() != 0)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected no arguments", name());
-        var time = GLib.TimeVal();
-        time.get_current_time();
-        return new Mal.Num(time.tv_sec * 1000 + time.tv_usec / 1000);
+        return new Mal.Num(GLib.get_real_time() / 1000);
     }
 }
 
