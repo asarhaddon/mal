@@ -2,28 +2,34 @@ namespace Mal {
     string pr_str(Mal.Val val, bool print_readably = true) {
         if (val is Mal.Nil)
             return "nil";
-        if (val is Mal.Bool)
-            return (val as Mal.Bool).v ? "true" : "false";
-        if (val is Mal.Sym)
-            return (val as Mal.Sym).v;
-        if (val is Mal.Keyword)
-            return ":" + (val as Mal.Keyword).v;
-        if (val is Mal.Num)
+        var b = val as Mal.Bool;
+        if (b != null)
+            return b.v ? "true" : "false";
+        var y = val as Mal.Sym;
+        if (y != null)
+            return y.v;
+        var k = val as Mal.Keyword;
+        if (k != null)
+            return ":" + k.v;
+        var n = val as Mal.Num;
+        if (n != null)
             return ("%"+int64.FORMAT_MODIFIER+"d")
-                .printf((val as Mal.Num).v);
-        if (val is Mal.String) {
-            string s = (val as Mal.String).v;
+                .printf(n.v);
+        var t = val as Mal.String;
+        if (t != null) {
+            string s = t.v;
             if (print_readably)
                 s = "\"%s\"".printf(s.replace("\\", "\\\\")
                                     .replace("\n", "\\n").
                                     replace("\"", "\\\""));
             return s;
         }
-        if (val is Mal.Listlike) {
+        var l = val as  Mal.Listlike;
+        if (l != null) {
             bool vec = val is Mal.Vector;
             string toret = vec ? "[" : "(";
             string sep = "";
-            for (var iter = (val as Mal.Listlike).iter();
+            for (var iter = l.iter();
                  iter.nonempty(); iter.step()) {
                 toret += sep + pr_str(iter.deref(), print_readably);
                 sep = " ";
@@ -31,10 +37,11 @@ namespace Mal {
             toret += vec ? "]" : ")";
             return toret;
         }
-        if (val is Mal.Hashmap) {
+        var m = val as Mal.Hashmap;
+        if (m != null) {
             string toret = "{";
             string sep = "";
-            var map = (val as Mal.Hashmap).vs;
+            var map = m.vs;
             foreach (var key in map.get_keys()) {
                 toret += (sep + pr_str(key, print_readably) + " " +
                           pr_str(map[key], print_readably));
@@ -43,15 +50,18 @@ namespace Mal {
             toret += "}";
             return toret;
         }
-        if (val is Mal.BuiltinFunction) {
-            return "#<builtin:%s>".printf((val as Mal.BuiltinFunction).name());
+        var bf = val as Mal.BuiltinFunction;
+        if (bf != null) {
+            return "#<builtin:%s>".printf(bf.name());
         }
-        if (val is Mal.Function) {
+        var mf = val as Mal.Function;
+        if (mf != null) {
             return "#<function>";
         }
-        if (val is Mal.Atom) {
+        var a = val as Mal.Atom;
+        if (a != null) {
             return "(atom %s)".printf(
-                pr_str((val as Mal.Atom).v, print_readably));
+                pr_str(a.v, print_readably));
         }
         return "??";
     }

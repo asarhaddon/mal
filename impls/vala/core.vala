@@ -111,9 +111,12 @@ class Mal.BuiltinFunctionReadString : Mal.BuiltinFunction {
     }
     public override string name() { return "read-string"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1 || !(args.vs.data is Mal.String))
+        if (args.vs.length() != 1)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
-        return Reader.read_str((args.vs.data as Mal.String).v);
+        var arg1 = args.vs.data as Mal.String;
+        if (arg1 == null)
+            throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
+        return Reader.read_str(arg1.v);
     }
 }
 
@@ -123,9 +126,12 @@ class Mal.BuiltinFunctionSlurp : Mal.BuiltinFunction {
     }
     public override string name() { return "slurp"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1 || !(args.vs.data is Mal.String))
+        if (args.vs.length() != 1)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
-        string filename = (args.vs.data as Mal.String).v;
+        var arg1 = args.vs.data as Mal.String;
+        if (arg1 == null)
+            throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
+        string filename = arg1.v;
         string contents;
         try {
             FileUtils.get_contents(filename, out contents);
@@ -192,8 +198,8 @@ class Mal.BuiltinFunctionTrueP : Mal.BuiltinFunction {
     public override Mal.Val call(Mal.List args) throws Mal.Error {
         if (args.vs.length() != 1)
             throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
-        return new Mal.Bool(args.vs.data is Mal.Bool &&
-                            (args.vs.data as Mal.Bool).v);
+        var arg1 = args.vs.data as Mal.Bool;
+        return new Mal.Bool(arg1 != null && arg1.v);
     }
 }
 
@@ -205,8 +211,8 @@ class Mal.BuiltinFunctionFalseP : Mal.BuiltinFunction {
     public override Mal.Val call(Mal.List args) throws Mal.Error {
         if (args.vs.length() != 1)
             throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
-        return new Mal.Bool(args.vs.data is Mal.Bool &&
-                            !(args.vs.data as Mal.Bool).v);
+        var arg1 = args.vs.data as Mal.Bool;
+        return new Mal.Bool(arg1 != null && !arg1.v);
     }
 }
 
@@ -369,10 +375,12 @@ class Mal.BuiltinFunctionCount : Mal.BuiltinFunction {
             throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
         if (args.vs.data is Mal.Nil)
             return new Mal.Num(0);     // nil is treated like ()
-        if (args.vs.data is Mal.List)
-            return new Mal.Num((args.vs.data as Mal.List).vs.length());
-        if (args.vs.data is Mal.Vector)
-            return new Mal.Num((args.vs.data as Mal.Vector).length);
+        var l = args.vs.data as Mal.List;
+        if (l != null)
+            return new Mal.Num(l.vs.length());
+        var v = args.vs.data as Mal.Vector;
+        if (v != null)
+            return new Mal.Num(v.length);
         throw new Mal.Error.BAD_PARAMS(
             "%s: expected a list argument", name());
     }
@@ -386,21 +394,40 @@ class Mal.BuiltinFunctionEQ : Mal.BuiltinFunction {
     private static bool eq(Mal.Val a, Mal.Val b) {
         if (a is Mal.Nil && b is Mal.Nil)
             return true;
-        if (a is Mal.Bool && b is Mal.Bool)
-            return (a as Mal.Bool).v == (b as Mal.Bool).v;
-        if (a is Mal.Sym && b is Mal.Sym)
-            return (a as Mal.Sym).v == (b as Mal.Sym).v;
-        if (a is Mal.Keyword && b is Mal.Keyword)
-            return (a as Mal.Keyword).v == (b as Mal.Keyword).v;
-        if (a is Mal.Num && b is Mal.Num)
-            return (a as Mal.Num).v == (b as Mal.Num).v;
-        if (a is Mal.String && b is Mal.String)
-            return (a as Mal.String).v == (b as Mal.String).v;
-        if (a is Mal.Listlike && b is Mal.Listlike) {
-            if (a is Mal.Nil || b is Mal.Nil)
+        var abool = a as Mal.Bool;
+        if (abool != null) {
+            var bbool = b as Mal.Bool;
+            return bbool != null && abool.v == bbool.v;
+        }
+        var asym = a as Mal.Sym;
+        if (asym != null) {
+            var bsym = b as Mal.Sym;
+            return bsym != null && asym.v == bsym.v;
+        }
+        var akwd = a as Mal.Keyword;
+        if (akwd != null) {
+            var bkwd = b as Mal.Keyword;
+            return bkwd != null && akwd.v == bkwd.v;
+        }
+        var anum = a as Mal.Num;
+        if (anum != null) {
+            var bnum = b as Mal.Num;
+            return bnum != null && anum.v == bnum.v;
+        }
+        var astr = a as Mal.String;
+        if (astr != null) {
+            var bstr = b as Mal.String;
+            return bstr != null && astr.v == bstr.v;
+        }
+        var aseq = a as Mal.Listlike; // Nil has already been tested.
+        if (aseq != null) {
+            if (aseq is Mal.Nil)
+                return b is Mal.Nil;
+            var bseq = b as Mal.Listlike;
+            if (bseq == null || bseq is Mal.Nil)
                 return false;
-            var aiter = (a as Mal.Listlike).iter();
-            var biter = (b as Mal.Listlike).iter();
+            var aiter = aseq.iter();
+            var biter = bseq.iter();
             while (aiter.nonempty() || biter.nonempty()) {
                 if (aiter.empty() || biter.empty())
                     return false;
@@ -411,19 +438,13 @@ class Mal.BuiltinFunctionEQ : Mal.BuiltinFunction {
             }
             return true;
         }
-        if (a is Mal.Vector && b is Mal.Vector) {
-            var av = a as Mal.Vector;
-            var bv = b as Mal.Vector;
-            if (av.length != bv.length)
+        var amap = a as Mal.Hashmap;
+        if (a != null) {
+            var bmap = b as Mal.Hashmap;
+            if (bmap == null)
                 return false;
-            for (var i = 0; i < av.length; i++)
-                if (!eq(av[i], bv[i]))
-                    return false;
-            return true;
-        }
-        if (a is Mal.Hashmap && b is Mal.Hashmap) {
-            var ah = (a as Mal.Hashmap).vs;
-            var bh = (b as Mal.Hashmap).vs;
+            var ah = amap.vs;
+            var bh = bmap.vs;
             if (ah.length != bh.length)
                 return false;
             foreach (var k in ah.get_keys()) {
@@ -548,10 +569,11 @@ class Mal.BuiltinFunctionReset : Mal.BuiltinFunction {
 Mal.Val call_function(Mal.Val function, GLib.List<Mal.Val> args, string caller)
 throws Mal.Error {
     var fnargs = new Mal.List(args);
-    if (function is Mal.BuiltinFunction) {
-        return (function as Mal.BuiltinFunction).call(fnargs);
-    } else if (function is Mal.Function) {
-        var fn = function as Mal.Function;
+    var bf = function as Mal.BuiltinFunction;
+    if (bf != null)
+        return bf.call(fnargs);
+    var fn = function as Mal.Function;
+    if (fn != null) {
         var env = new Mal.Env.funcall(fn.env, fn.parameters, fnargs);
         return Mal.Main.EVAL(fn.body, env);
     } else {
@@ -663,8 +685,8 @@ class Mal.BuiltinFunctionNth : Mal.BuiltinFunction {
             throw new Mal.Error.BAD_PARAMS(
                 "%s: negative list index", name());
         Mal.Val? result = null;
-        if (list is Mal.Vector) {
-            var vec = list as Mal.Vector;
+        var vec = list as Mal.Vector;
+        if (vec != null) {
             if (index.v < vec.length)
                 result = vec[(uint)index.v];
         } else {
@@ -813,9 +835,12 @@ class Mal.BuiltinFunctionSymbol : Mal.BuiltinFunction {
     }
     public override string name() { return "symbol"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 1 || !(args.vs.data is Mal.String))
+        if (args.vs.length() != 1)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
-        return new Mal.Sym((args.vs.data as Mal.String).v);
+        var s = args.vs.data as Mal.String;
+        if (s == null)
+            throw new Mal.Error.BAD_PARAMS("%s: expected a string", name());
+        return new Mal.Sym(s.v);
     }
 }
 
@@ -829,9 +854,10 @@ class Mal.BuiltinFunctionKeyword : Mal.BuiltinFunction {
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
         else if (args.vs.data is Mal.Keyword)
             return args.vs.data;
-        else if (!(args.vs.data is Mal.String))
+        var arg1 = args.vs.data as Mal.String;
+        if (arg1 == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
-        return new Mal.Keyword((args.vs.data as Mal.String).v);
+        return new Mal.Keyword(arg1.v);
     }
 }
 
@@ -871,6 +897,9 @@ class Mal.BuiltinFunctionDissoc : Mal.BuiltinFunction {
     }
     public override string name() { return "dissoc"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
+        if (args.vs.length() == 0)
+            throw new Mal.Error.BAD_PARAMS(
+                "%s: expected a hash-map to modify", name());
         var iter = args.iter();
         var oldmap = iter.deref() as Mal.Hashmap;
         if (iter.deref() is Mal.Nil)
@@ -997,9 +1026,10 @@ class Mal.BuiltinFunctionReadline : Mal.BuiltinFunction {
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected one argument", name());
         string prompt = "";
-        if (args.vs.data is Mal.String)
-            prompt = (args.vs.data as Mal.String).v;
-        else if (!(args.vs.data is Mal.Nil))
+        var arg1 = args.vs.data as Mal.String;
+        if (arg1 != null)
+            prompt = arg1.v;
+        else if (!(arg1 is Mal.Nil))
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a string prompt", name());
         string? line = Readline.readline(prompt);
@@ -1065,30 +1095,30 @@ class Mal.BuiltinFunctionConj : Mal.BuiltinFunction {
     }
     public override string name() { return "conj"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        var iter = args.iter();
-        var collection = iter.deref() as Mal.Listlike;
-        if (collection == null)
+        if (args.vs.length() == 0)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a collection to modify", name());
-
-        if (collection is Mal.Vector) {
-            var oldvec = collection as Mal.Vector;
+        var oldvec = args.vs.data as Mal.Vector;
+        if (oldvec != null) {
             var n = args.vs.length() - 1;
             var newvec = new Mal.Vector.with_size(oldvec.length + n);
             int i;
             for (i = 0; i < oldvec.length; i++)
                 newvec[i] = oldvec[i];
-            for (iter.step(); iter.nonempty(); iter.step(), i++)
-                newvec[i] = iter.deref();
+            foreach (var x in args.vs.next)
+                newvec[i++] = x;
             return newvec;
-        } else {
+        }
+        var oldlist = args.vs.data as Mal.List;
+        if (oldlist != null) {
             var newlist = new Mal.List.empty();
-            for (var citer = collection.iter(); citer.nonempty(); citer.step())
-                newlist.vs.append(citer.deref());
-            for (iter.step(); iter.nonempty(); iter.step())
-                newlist.vs.prepend(iter.deref());
+            newlist.vs = oldlist.vs.copy();
+            foreach (var x in args.vs.next)
+                newlist.vs.prepend(x);
             return newlist;
         }
+        throw new Mal.Error.BAD_PARAMS(
+            "%s: expected a collection to modify", name());
     }
 }
 
@@ -1101,13 +1131,12 @@ class Mal.BuiltinFunctionSeq : Mal.BuiltinFunction {
         if (args.vs.length() != 1)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected one argument", name());
-        Mal.List toret;
-        if (args.vs.data is Mal.List) {
-            toret = args.vs.data as Mal.List;
-        } else {
+        Mal.List toret = args.vs.data as Mal.List;
+        if (toret == null) {
             toret = new Mal.List.empty();
-            if (args.vs.data is Mal.String) {
-                var str = (args.vs.data as Mal.String).v;
+            var s = args.vs.data as Mal.String;
+            if (s != null) {
+                var str = s.v;
                 if (str.length != 0) {
                     unowned string tail = str;
                     while (tail != "") {
@@ -1118,12 +1147,14 @@ class Mal.BuiltinFunctionSeq : Mal.BuiltinFunction {
                         tail = new_tail;
                     }
                 }
-            } else if (args.vs.data is Mal.Listlike) {
-                var collection = args.vs.data as Mal.Listlike;
+            } else {
+            var collection = args.vs.data as Mal.Listlike;
+            if (collection != null) {
                 for (var iter = collection.iter(); iter.nonempty(); iter.step())
                     toret.vs.append(iter.deref());
             } else {
                 throw new Mal.Error.BAD_PARAMS("%s: bad input type", name());
+            }
             }
         }
         if (toret.vs.length() == 0)
