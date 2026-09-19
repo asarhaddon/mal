@@ -17,7 +17,6 @@ class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
 
 class Mal.Main : GLib.Object {
     static bool eof;
-    static Mal.Sym dbgevalsym;
 
     static construct {
         eof = false;
@@ -52,7 +51,7 @@ class Mal.Main : GLib.Object {
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a symbol to define", context);
         var val = EVAL(value, env);
-        env.set(symkey, val);
+        env.set(symkey.v, val);
         return val;
     }
 
@@ -135,15 +134,13 @@ class Mal.Main : GLib.Object {
         while (true) {
             GC.Core.maybe_collect();
 
-            if (dbgevalsym == null)
-                dbgevalsym = new Mal.Sym("DEBUG-EVAL");
-            var dbgeval = env.get(dbgevalsym);
+            var dbgeval = env.get("DEBUG-EVAL");
             if (dbgeval != null && dbgeval.truth_value())
                 stdout.printf("EVAL: %s\n", pr_str(ast));
 
             var key = ast as Mal.Sym;
             if (key != null) {
-                var val = env.get(key);
+                var val = env.get(key.v);
                 if (val == null)
                     throw new Error.ENV_LOOKUP_FAILED("'%s' not found", key.v);
                 return val;
@@ -193,7 +190,7 @@ class Mal.Main : GLib.Object {
                                 "defmacro!: expected a function");
                         val = val.copy() as Mal.Function;
                         val.is_macro = true;
-                        env.set(symkey, val);
+                        env.set(symkey.v, val);
                         return val;
                     case "let*":
                         if (list.length() != 3)
@@ -244,18 +241,30 @@ class Mal.Main : GLib.Object {
                         if (list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
                                 "fn*: expected two arguments");
-                        var binds = list.next.data as Mal.Listlike;
                         var body = list.next.next.data;
-                        if (binds == null)
+                        Mal.Iterator iter;
+                        string[] binds_s;
+                        var binds_lst = list.next.data as Mal.List;
+                        var binds_vec = list.next.data as Mal.Vector;
+                        if (binds_lst != null) {
+                            binds_s = new string[binds_lst.vs.length()];
+                            iter = binds_lst.iter();
+                        } else if (binds_vec != null) {
+                            binds_s = new string[binds_vec.length];
+                            iter = binds_vec.iter();
+                        } else
                             throw new Mal.Error.BAD_PARAMS(
                                 "fn*: expected a list of parameter names");
-                        for (var iter = binds.iter(); iter.nonempty();
-                             iter.step())
-                            if (!(iter.deref() is Mal.Sym))
+                        for (uint i = 0; i < binds_s.length;  ++i) {
+                            var s = iter.deref() as Mal.Sym;
+                            iter.step();
+                            if (s == null)
                                 throw new Mal.Error.BAD_PARAMS(
                                     "fn*: expected parameter name to be "+
                                     "symbol");
-                        return new Mal.Function(binds, body, env);
+                            binds_s[i] = s.v;
+                        }
+                        return new Mal.Function(binds_s, body, env);
                     case "quote":
                         if (list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(
@@ -294,7 +303,7 @@ class Mal.Main : GLib.Object {
                             return EVAL(trybody, env);
                         } catch (Mal.Error exc) {
                             var catchenv = new Mal.Env.within(env);
-                            catchenv.set(catchparam, Mal.BuiltinFunctionThrow.
+                            catchenv.set(catchparam.v, Mal.BuiltinFunctionThrow.
                                          thrown_value(exc));
                             ast = catchbody;
                             env = catchenv;
@@ -363,8 +372,8 @@ class Mal.Main : GLib.Object {
         var env = new Mal.Env();
 
         Mal.Core.make_ns(env);
-        env.set(new Mal.Sym("eval"), new Mal.BuiltinFunctionEval(env));
-        env.set(new Mal.Sym("*host-language*"), new Mal.String("vala"));
+        env.set("eval", new Mal.BuiltinFunctionEval(env));
+        env.set("*host-language*", new Mal.String("vala"));
 
         setup("(def! not (fn* (a) (if a false true)))", env);
         setup("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", env);
@@ -373,7 +382,7 @@ class Mal.Main : GLib.Object {
         var ARGV = new GLib.List<Mal.Val>();
         for (int i = 2; i < args.length; ++i)
             ARGV.append(new Mal.String(args[i]));
-        env.set(new Mal.Sym("*ARGV*"), new Mal.List(ARGV));
+        env.set("*ARGV*", new Mal.List(ARGV));
         ARGV = null; // (def! *ARGV* 0) should deallocate the strings.
 
         if (args.length > 1) {

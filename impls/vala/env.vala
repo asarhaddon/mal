@@ -1,10 +1,10 @@
 class Mal.Env : GC.Object {
-    private GLib.HashTable<weak Mal.Sym, weak Mal.Val> data;
+    private GLib.HashTable<string, weak Mal.Val> data;
     weak Mal.Env? outer;
 
     construct {
-        data = new GLib.HashTable<weak Mal.Sym, weak Mal.Val>(
-            Mal.Hashable.hash, Mal.Hashable.equal);
+        data = new GLib.HashTable<string, weak Mal.Val>(
+            str_hash, str_equal);
     }
 
     public Env.within(Mal.Env outer_) {
@@ -19,51 +19,51 @@ class Mal.Env : GC.Object {
         base.gc_traverse();
         if (outer != null)
             outer.visit();
-        foreach (var key in data.get_keys()) {
-            key.visit();
-            data[key].visit();
-        }
+        foreach (var v in data.get_values())
+            v.visit();
     }
 
-    public Env.funcall(Mal.Env outer_, Mal.Listlike binds, Mal.List exprs)
+    public Env.funcall(Mal.Env outer_, string[] binds, Mal.List exprs)
     throws Mal.Error {
         outer = outer_;
-        var binditer = binds.iter();
         unowned var exprlist = exprs.vs;
 
-        while (binditer.nonempty()) {
-            var paramsym = binditer.deref() as Mal.Sym;
-            if (paramsym.v == "&") {
-                binditer.step();
-                var rest = binditer.deref();
-                binditer.step();
-                if (rest == null || binditer.nonempty())
-                    throw new Mal.Error.BAD_PARAMS(
-                        "expected exactly one parameter name after &");
-                var rest_expr = new Mal.List.empty();
-                rest_expr.vs = exprlist.copy();
-                set(rest as Mal.Sym, rest_expr);
-                return;
-            } else {
+        if (2 <= binds.length && binds[binds.length - 2] == "&") {
+            for (uint i = 0; i < binds.length - 2; ++i) {
                 if (exprlist == null)
                     throw new Mal.Error.BAD_PARAMS(
-                        "too few arguments for function");
-                set(paramsym, exprlist.data);
-                binditer.step();
+                        "fn* function call: expected at least %u arguments, got: %s",
+                        binds.length - 2, pr_list(exprs, true, " "));
+                set(binds[i], exprlist.data);
                 exprlist = exprlist.next;
             }
+            var rest_expr = new Mal.List.empty();
+            rest_expr.vs = exprlist.copy();
+            set(binds[binds.length - 1], rest_expr);
         }
-        if (exprlist != null)
-            throw new Mal.Error.BAD_PARAMS("too many arguments for function");
+        else {
+            for (uint i = 0; i < binds.length; ++i) {
+                if (exprlist == null)
+                    throw new Mal.Error.BAD_PARAMS(
+                        "fn* function call: expected %u argument(s), got: %s",
+                        binds.length, pr_list(exprs, true, " "));
+                set(binds[i], exprlist.data);
+                exprlist = exprlist.next;
+            }
+            if (exprlist != null)
+                throw new Mal.Error.BAD_PARAMS(
+                    "fn* function call: expected %u argument(s), got: %s",
+                    binds.length, pr_list(exprs, true, " "));
+        }
     }
 
     // Use the 'new' keyword to silence warnings about 'set' and 'get'
     // already having meanings that we're overwriting
-    public new void set(Mal.Sym key, Mal.Val f) {
+    public new void set(string key, Mal.Val f) {
         data[key] = f;
     }
 
-    public new Mal.Val? get(Mal.Sym key) {
+    public new Mal.Val? get(string key) {
         if (key in data)
             return data[key];
         if (outer == null)

@@ -234,10 +234,10 @@ abstract class Mal.BuiltinFunction : Mal.ValWithMetadata {
 class Mal.Function : Mal.ValWithMetadata {
     public bool is_macro;
 #if !NO_ENV
-    public weak Mal.Listlike parameters;
+    public string[] parameters;
     public weak Mal.Val body;
     public weak Mal.Env env;
-    public Function(Mal.Listlike parameters_, Mal.Val body_, Mal.Env env_) {
+    public Function(string[] parameters_, Mal.Val body_, Mal.Env env_) {
         parameters = parameters_;
         body = body_;
         env = env_;
@@ -257,7 +257,6 @@ class Mal.Function : Mal.ValWithMetadata {
     public override void gc_traverse() {
         base.gc_traverse();
 #if !NO_ENV
-        parameters.visit();
         body.visit();
         env.visit();
 #endif

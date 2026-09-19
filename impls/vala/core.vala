@@ -1097,7 +1097,7 @@ class Mal.Core {
     // number of roots when debugging the garbage collector.
 
     private static void add_builtin(Mal.Env env, Mal.BuiltinFunction f) {
-        env.set(new Mal.Sym(f.name()), f);
+        env.set(f.name(), f);
     }
 
     public static void make_ns(Mal.Env env) {
