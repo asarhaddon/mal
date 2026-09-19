@@ -116,13 +116,6 @@ class Mal.ListIterator : Mal.Iterator {
 class Mal.Vector : Mal.Listlike {
     struct Ref { weak Mal.Val v; }
     private Ref[] rs;
-    public Vector.from_list(GLib.List<Val> values) {
-        rs = new Ref[values.length()];
-        int i = 0;
-        foreach (var value in values) {
-            rs[i++] = { value };
-        }
-    }
     public Vector.with_size(uint size) {
         rs = new Ref[size];
     }

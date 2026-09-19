@@ -264,7 +264,11 @@ class Mal.BuiltinFunctionVector : Mal.BuiltinFunction {
     }
     public override string name() { return "vector"; }
     public override Mal.Val call(Mal.List args) throws Mal.Error {
-        return new Mal.Vector.from_list(args.vs);
+        var result = new Mal.Vector.with_size(args.vs.length());
+        uint i = 0;
+        foreach (var value in args.vs)
+            result[i++] = value;
+        return result;
     }
 }
 
@@ -626,8 +630,14 @@ class Mal.BuiltinFunctionVec : Mal.BuiltinFunction {
         if (args.vs.length() != 1)
             throw new Mal.Error.BAD_PARAMS("%s: expected one argument", name());
         var a0 = args.vs.data;
-        if (a0 is Mal.List)
-            return new Mal.Vector.from_list((a0 as Mal.List).vs);
+        var a0lst = a0 as Mal.List;
+        if (a0lst != null) {
+            var result = new Mal.Vector.with_size(a0lst.vs.length());
+            uint i = 0;
+            foreach (var x in a0lst.vs)
+                result[i++] = x;
+            return result;
+        }
         if (a0 is Mal.Vector)
             return a0;
         throw new Mal.Error.BAD_PARAMS(

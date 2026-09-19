@@ -153,7 +153,12 @@ class Mal.Reader : GLib.Object {
         case "false":
             return new Mal.Bool(false);
         case "[":
-            return new Mal.Vector.from_list(read_list("]"));
+            var l = read_list("]");
+            var result = new Mal.Vector.with_size(l.length());
+            uint i = 0;
+            foreach (var x in l)
+                result[i++] = x;
+            return result;
         case "{":
             return read_hashmap();
         case "'":
