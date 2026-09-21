@@ -5,9 +5,9 @@ class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionEval(env);
     }
     public override string name() { return "eval"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return Mal.Main.EVAL(args.vs.data, env);
+        return Mal.Main.EVAL(args[0], env);
     }
     public override void gc_traverse() {
         base.gc_traverse();
@@ -311,24 +311,28 @@ class Mal.Main : GLib.Object {
                 }
 
                 Mal.Val firstdata = EVAL(first, env);
-                var newlist = new Mal.List.empty();
+                var newlist = new Mal.Val[list.length()];
 
                 var bf = firstdata as Mal.BuiltinFunction;
                 if (bf != null) {
+                    uint i = 0;
                     foreach (var x in list)
-                        newlist.vs.append(EVAL(x, env));
+                        newlist[i++] = EVAL(x, env);
                     return bf.call(newlist);
                 }
                 var fn = firstdata as Mal.Function;
                 if (fn != null) {
                     if (fn.is_macro) {
-                        newlist.vs = list.copy();
+                        uint i = 0;
+                        foreach (var x in list)
+                            newlist[i++] = x;
                         var fenv = new Mal.Env.funcall(fn.env, fn.parameters, newlist);
                         ast = EVAL(fn.body, fenv);
                         continue;
                     }
+                    uint i = 0;
                     foreach (var x in list)
-                        newlist.vs.append(EVAL(x, env));
+                        newlist[i++] = EVAL(x, env);
                     env = new Mal.Env.funcall(fn.env, fn.parameters, newlist);
                     ast = fn.body;
                     continue;      // tail-call optimisation

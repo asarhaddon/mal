@@ -26,11 +26,11 @@ namespace Mal {
         }
         var l = val as Mal.List;
         if (l != null) {
-            return "(" + pr_list(l, print_readably, " ") + ")";
+            return "(" + pr_listlike(l, print_readably, " ") + ")";
         }
         var v = val as Mal.Vector;
         if (v != null) {
-            return "[" + pr_list(v, print_readably, " ") + "]";
+            return "[" + pr_listlike(v, print_readably, " ") + "]";
         }
         var m = val as Mal.Hashmap;
         if (m != null) {
@@ -60,12 +60,21 @@ namespace Mal {
         return "(atom %s)".printf(pr_str(a.v, print_readably));
     }
 
-    string pr_list(Listlike xs, bool print_readably, string separator) {
+    string pr_listlike(Listlike xs, bool print_readably, string separator) {
         string result = "";
         for (var iter = xs.iter(); iter.nonempty(); iter.step()) {
             if (0 != result.length)
                 result += separator;
             result += pr_str(iter.deref(), print_readably);
+        }
+        return result;
+    }
+    string pr_list(Val[] xs, bool print_readably, string separator) {
+        string result = "";
+        foreach (var x in xs) {
+            if (0 != result.length)
+                result += separator;
+            result += pr_str(x, print_readably);
         }
         return result;
     }

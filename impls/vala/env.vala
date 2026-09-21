@@ -23,37 +23,29 @@ class Mal.Env : GC.Object {
             v.visit();
     }
 
-    public Env.funcall(Mal.Env outer_, string[] binds, Mal.List exprs)
+    public Env.funcall(Mal.Env outer_, string[] binds, Mal.Val[] exprs)
     throws Mal.Error {
         outer = outer_;
-        unowned var exprlist = exprs.vs;
 
         if (2 <= binds.length && binds[binds.length - 2] == "&") {
-            for (uint i = 0; i < binds.length - 2; ++i) {
-                if (exprlist == null)
-                    throw new Mal.Error.BAD_PARAMS(
-                        "fn* function call: expected at least %u arguments, got: %s",
-                        binds.length - 2, pr_list(exprs, true, " "));
-                set(binds[i], exprlist.data);
-                exprlist = exprlist.next;
-            }
+            if (exprs.length < binds.length - 2)
+                throw new Mal.Error.BAD_PARAMS(
+                    "fn* function call: expected at least %u arguments, got: %s",
+                    binds.length - 2, pr_list(exprs, true, " "));
+            for (uint i = 0; i < binds.length - 2; ++i)
+                set(binds[i], exprs[i]);
             var rest_expr = new Mal.List.empty();
-            rest_expr.vs = exprlist.copy();
+            for (uint i = binds.length - 2; i < exprs.length; ++i)
+                rest_expr.vs.append(exprs[i]);
             set(binds[binds.length - 1], rest_expr);
         }
         else {
-            for (uint i = 0; i < binds.length; ++i) {
-                if (exprlist == null)
-                    throw new Mal.Error.BAD_PARAMS(
-                        "fn* function call: expected %u argument(s), got: %s",
-                        binds.length, pr_list(exprs, true, " "));
-                set(binds[i], exprlist.data);
-                exprlist = exprlist.next;
-            }
-            if (exprlist != null)
+            if (exprs.length != binds.length)
                 throw new Mal.Error.BAD_PARAMS(
                     "fn* function call: expected %u argument(s), got: %s",
                     binds.length, pr_list(exprs, true, " "));
+            for (uint i = 0; i < binds.length; ++i)
+                set(binds[i], exprs[i]);
         }
     }
 

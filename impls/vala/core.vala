@@ -1,9 +1,9 @@
 abstract class Mal.BuiltinFunctionDyadicArithmetic : Mal.BuiltinFunction {
     public abstract int64 result(int64 a, int64 b);
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        Mal.Num a = args.vs.data as Mal.Num;
-        Mal.Num b = args.vs.next.data as Mal.Num;
+        Mal.Num a = args[0] as Mal.Num;
+        Mal.Num b = args[1] as Mal.Num;
         if (a == null || b == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name());
         return new Mal.Num(result(a.v, b.v));
@@ -47,7 +47,7 @@ class Mal.BuiltinFunctionPrStr : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionPrStr();
     }
     public override string name() { return "pr-str"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         string result = pr_list(args, true, " ");
         return new Mal.String(result);
     }
@@ -58,7 +58,7 @@ class Mal.BuiltinFunctionStr : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionStr();
     }
     public override string name() { return "str"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         string result = pr_list(args, false, "");
         return new Mal.String(result);
     }
@@ -69,7 +69,7 @@ class Mal.BuiltinFunctionPrn : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionPrn();
     }
     public override string name() { return "prn"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         stdout.printf(pr_list(args, true, " "));
         stdout.printf("\n");
         return new Mal.Nil();
@@ -81,7 +81,7 @@ class Mal.BuiltinFunctionPrintln : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionPrintln();
     }
     public override string name() { return "println"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         stdout.printf(pr_list(args, false, " "));
         stdout.printf("\n");
         return new Mal.Nil();
@@ -93,9 +93,9 @@ class Mal.BuiltinFunctionReadString : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionReadString();
     }
     public override string name() { return "read-string"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var arg1 = args.vs.data as Mal.String;
+        var arg1 = args[0] as Mal.String;
         if (arg1 == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
         return Reader.read_str(arg1.v);
@@ -107,9 +107,9 @@ class Mal.BuiltinFunctionSlurp : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionSlurp();
     }
     public override string name() { return "slurp"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var arg1 = args.vs.data as Mal.String;
+        var arg1 = args[0] as Mal.String;
         if (arg1 == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
         string filename = arg1.v;
@@ -129,8 +129,11 @@ class Mal.BuiltinFunctionList : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionList();
     }
     public override string name() { return "list"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        return args;
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        var result = new Mal.List.empty();
+        foreach (var x in args)
+            result.vs.append(x);
+        return result;
     }
 }
 
@@ -139,9 +142,9 @@ class Mal.BuiltinFunctionListP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionListP();
     }
     public override string name() { return "list?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.List);
+        return new Mal.Bool(args[0] is Mal.List);
     }
 }
 
@@ -150,10 +153,10 @@ class Mal.BuiltinFunctionSequentialP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionSequentialP();
     }
     public override string name() { return "sequential?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.List ||
-                            args.vs.data is Mal.Vector);
+        return new Mal.Bool(args[0] is Mal.List ||
+                            args[0] is Mal.Vector);
     }
 }
 
@@ -162,9 +165,9 @@ class Mal.BuiltinFunctionNilP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionNilP();
     }
     public override string name() { return "nil?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.Nil);
+        return new Mal.Bool(args[0] is Mal.Nil);
     }
 }
 
@@ -173,9 +176,9 @@ class Mal.BuiltinFunctionTrueP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionTrueP();
     }
     public override string name() { return "true?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var arg1 = args.vs.data as Mal.Bool;
+        var arg1 = args[0] as Mal.Bool;
         return new Mal.Bool(arg1 != null && arg1.v);
     }
 }
@@ -185,9 +188,9 @@ class Mal.BuiltinFunctionFalseP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionFalseP();
     }
     public override string name() { return "false?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var arg1 = args.vs.data as Mal.Bool;
+        var arg1 = args[0] as Mal.Bool;
         return new Mal.Bool(arg1 != null && !arg1.v);
     }
 }
@@ -197,9 +200,9 @@ class Mal.BuiltinFunctionNumberP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionNumberP();
     }
     public override string name() { return "number?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.Num);
+        return new Mal.Bool(args[0] is Mal.Num);
     }
 }
 
@@ -208,9 +211,9 @@ class Mal.BuiltinFunctionStringP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionStringP();
     }
     public override string name() { return "string?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.String);
+        return new Mal.Bool(args[0] is Mal.String);
     }
 }
 
@@ -219,9 +222,9 @@ class Mal.BuiltinFunctionSymbolP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionSymbolP();
     }
     public override string name() { return "symbol?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.Sym);
+        return new Mal.Bool(args[0] is Mal.Sym);
     }
 }
 
@@ -230,9 +233,9 @@ class Mal.BuiltinFunctionKeywordP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionKeywordP();
     }
     public override string name() { return "keyword?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.Keyword);
+        return new Mal.Bool(args[0] is Mal.Keyword);
     }
 }
 
@@ -241,10 +244,10 @@ class Mal.BuiltinFunctionVector : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionVector();
     }
     public override string name() { return "vector"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        var result = new Mal.Vector.with_size(args.vs.length());
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        var result = new Mal.Vector.with_size(args.length);
         uint i = 0;
-        foreach (var value in args.vs)
+        foreach (var value in args)
             result[i++] = value;
         return result;
     }
@@ -255,9 +258,9 @@ class Mal.BuiltinFunctionVectorP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionVectorP();
     }
     public override string name() { return "vector?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.Vector);
+        return new Mal.Bool(args[0] is Mal.Vector);
     }
 }
 
@@ -266,14 +269,14 @@ class Mal.BuiltinFunctionHashMap : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionHashMap();
     }
     public override string name() { return "hash-map"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         var map = new Mal.Hashmap();
-        for (var iter = args.iter(); iter.nonempty(); iter.step()) {
-            var key = iter.deref();
-            var value = iter.step().deref();
-            if (value == null)
-                throw new Mal.Error.BAD_PARAMS(
-                    "%s: expected an even number of arguments", name());
+        if (args.length % 2 != 0)
+            throw new Mal.Error.BAD_PARAMS(
+                "%s: expected an even number of arguments", name());
+        for (uint i = 0; i < args.length; i += 2) {
+            var key = args[i];
+            var value = args[i+1];
             map.insert(key, value);
         }
         return map;
@@ -285,9 +288,9 @@ class Mal.BuiltinFunctionMapP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionMapP();
     }
     public override string name() { return "map?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.Hashmap);
+        return new Mal.Bool(args[0] is Mal.Hashmap);
     }
 }
 
@@ -296,9 +299,9 @@ class Mal.BuiltinFunctionEmptyP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionEmptyP();
     }
     public override string name() { return "empty?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var list = args.vs.data as Mal.Listlike;
+        var list = args[0] as Mal.Listlike;
         if (list == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a list-like argument", name());
@@ -311,11 +314,11 @@ class Mal.BuiltinFunctionFnP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionFnP();
     }
     public override string name() { return "fn?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        if (args.vs.data is Mal.BuiltinFunction)
+        if (args[0] is Mal.BuiltinFunction)
             return new Mal.Bool(true);
-        var fn = args.vs.data as Mal.Function;
+        var fn = args[0] as Mal.Function;
         return new Mal.Bool(fn != null && !fn.is_macro);
     }
 }
@@ -325,9 +328,9 @@ class Mal.BuiltinFunctionMacroP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionMacroP();
     }
     public override string name() { return "macro?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var fn = args.vs.data as Mal.Function;
+        var fn = args[0] as Mal.Function;
         return new Mal.Bool(fn != null && fn.is_macro);
     }
 }
@@ -337,14 +340,14 @@ class Mal.BuiltinFunctionCount : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionCount();
     }
     public override string name() { return "count"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        if (args.vs.data is Mal.Nil)
+        if (args[0] is Mal.Nil)
             return new Mal.Num(0);     // nil is treated like ()
-        var l = args.vs.data as Mal.List;
+        var l = args[0] as Mal.List;
         if (l != null)
             return new Mal.Num(l.vs.length());
-        var v = args.vs.data as Mal.Vector;
+        var v = args[0] as Mal.Vector;
         if (v != null)
             return new Mal.Num(v.length);
         throw new Mal.Error.BAD_PARAMS(
@@ -423,18 +426,18 @@ class Mal.BuiltinFunctionEQ : Mal.BuiltinFunction {
         }
         return false;
     }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        return new Mal.Bool(eq(args.vs.data, args.vs.next.data));
+        return new Mal.Bool(eq(args[0], args[1]));
     }
 }
 
 abstract class Mal.BuiltinFunctionNumberCmp : Mal.BuiltinFunction {
     public abstract bool result(int64 a, int64 b);
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        Mal.Num a = args.vs.data as Mal.Num;
-        Mal.Num b = args.vs.next.data as Mal.Num;
+        Mal.Num a = args[0] as Mal.Num;
+        Mal.Num b = args[1] as Mal.Num;
         if (a == null || b == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name());
         return new Mal.Bool(result(a.v, b.v));
@@ -478,9 +481,9 @@ class Mal.BuiltinFunctionAtom : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionAtom();
     }
     public override string name() { return "atom"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Atom(args.vs.data);
+        return new Mal.Atom(args[0]);
     }
 }
 
@@ -489,9 +492,9 @@ class Mal.BuiltinFunctionAtomP : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionAtomP();
     }
     public override string name() { return "atom?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        return new Mal.Bool(args.vs.data is Mal.Atom);
+        return new Mal.Bool(args[0] is Mal.Atom);
     }
 }
 
@@ -500,9 +503,9 @@ class Mal.BuiltinFunctionDeref : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionDeref();
     }
     public override string name() { return "deref"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var atom = args.vs.data as Mal.Atom;
+        var atom = args[0] as Mal.Atom;
         if (atom == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected an atom", name());
         return atom.v;
@@ -514,19 +517,18 @@ class Mal.BuiltinFunctionReset : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionReset();
     }
     public override string name() { return "reset!"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        var atom = args.vs.data as Mal.Atom;
+        var atom = args[0] as Mal.Atom;
         if (atom == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected an atom", name());
-        atom.v = args.vs.next.data;
+        atom.v = args[1];
         return atom.v;
     }
 }
 
-Mal.Val call_function(Mal.Val function, GLib.List<Mal.Val> args, string caller)
+Mal.Val call_function(Mal.Val function, Mal.Val[] fnargs, string caller)
 throws Mal.Error {
-    var fnargs = new Mal.List(args);
     var bf = function as Mal.BuiltinFunction;
     if (bf != null)
         return bf.call(fnargs);
@@ -544,16 +546,18 @@ class Mal.BuiltinFunctionSwap : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionSwap();
     }
     public override string name() { return "swap!"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() < 2)
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        if (args.length < 2)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected at least two arguments", name());
-        var atom = args.vs.data as Mal.Atom;
+        var atom = args[0] as Mal.Atom;
         if (atom == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected an atom", name());
-        var function = args.vs.next.data;
-        var fnargs = args.vs.next.next.copy();
-        fnargs.prepend(atom.v);
+        var function = args[1];
+        var fnargs = new Mal.Val[args.length - 1];
+        fnargs[0] = atom.v;
+        for (uint i = 2; i < args.length; ++i)
+            fnargs[i-1] = args[i];
         atom.v = call_function(function, fnargs, name());
         return atom.v;
     }
@@ -564,10 +568,10 @@ class Mal.BuiltinFunctionCons : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionCons();
     }
     public override string name() { return "cons"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        var first = args.vs.data;
-        var rest = args.vs.next.data as Mal.Listlike;
+        var first = args[0];
+        var rest = args[1] as Mal.Listlike;
         if (rest == null) {
             throw new Mal.Error.BAD_PARAMS("%s: expected a list", name());
         }
@@ -584,9 +588,9 @@ class Mal.BuiltinFunctionConcat : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionConcat();
     }
     public override string name() { return "concat"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         var newlist = new GLib.List<Mal.Val>();
-        foreach (var listval in args.vs) {
+        foreach (var listval in args) {
             if (listval is Mal.Nil)
                 continue;
             var list = listval as Mal.Listlike;
@@ -604,9 +608,9 @@ class Mal.BuiltinFunctionVec : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionVec();
     }
     public override string name() { return "vec"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var a0 = args.vs.data;
+        var a0 = args[0];
         var a0lst = a0 as Mal.List;
         if (a0lst != null) {
             var result = new Mal.Vector.with_size(a0lst.vs.length());
@@ -627,10 +631,10 @@ class Mal.BuiltinFunctionNth : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionNth();
     }
     public override string name() { return "nth"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        var list = args.vs.data as Mal.Listlike;
-        var index = args.vs.next.data as Mal.Num;
+        var list = args[0] as Mal.Listlike;
+        var index = args[1] as Mal.Num;
         if (list == null || index == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a list and a number", name());
@@ -666,9 +670,9 @@ class Mal.BuiltinFunctionFirst : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionFirst();
     }
     public override string name() { return "first"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var list = args.vs.data as Mal.Listlike;
+        var list = args[0] as Mal.Listlike;
         if (list == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a list number", name());
@@ -684,9 +688,9 @@ class Mal.BuiltinFunctionRest : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionRest();
     }
     public override string name() { return "rest"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var list = args.vs.data as Mal.Listlike;
+        var list = args[0] as Mal.Listlike;
         if (list == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a list", name());
@@ -720,10 +724,10 @@ class Mal.BuiltinFunctionThrow : Mal.BuiltinFunction {
     }
 
     public override string name() { return "throw"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
         assert(curr_exception == null);
-        curr_exception = args.vs.data;
+        curr_exception = args[0];
         throw new Mal.Error.EXCEPTION_THROWN("core function throw called");
     }
     public override void gc_traverse() {
@@ -738,22 +742,32 @@ class Mal.BuiltinFunctionApply : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionApply();
     }
     public override string name() { return "apply"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() < 2)
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        if (args.length < 2)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected at least two arguments", name());
-        var function = args.vs.data;
-        unowned GLib.List<Mal.Val> lastlink = args.vs.last();
-        var list = lastlink.data as Mal.Listlike;
-        if (list == null)
+        var function = args[0];
+        uint len;
+        Mal.Iterator it;
+        var list = args[args.length - 1] as Mal.List;
+        var vec = args[args.length - 1] as Mal.Vector;
+        if (list != null) {
+            len = list.vs.length();
+            it = list.iter();
+        }
+        else if (vec != null) {
+            len = vec.length;
+            it = vec.iter();
+        }
+        else
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected final argument to be a list", name());
-        var fnargs = new GLib.List<Mal.Val>();
-        for (var iter = list.iter(); iter.nonempty(); iter.step())
-            fnargs.append(iter.deref());
-        for (unowned GLib.List<Mal.Val> link = lastlink.prev;
-             link != args.vs; link = link.prev)
-            fnargs.prepend(link.data);
+        var fnargs = new Mal.Val[args.length - 2 + len];
+        uint i = 0;
+        for (var j = 1; j < args.length - 1; ++j)
+            fnargs[i++] = args[j];
+        for (; it.nonempty(); it.step())
+            fnargs[i++] = it.deref();
         return call_function(function, fnargs, name());
     }
 }
@@ -763,16 +777,15 @@ class Mal.BuiltinFunctionMap : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionMap();
     }
     public override string name() { return "map"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        var function = args.vs.data;
-        var list = args.vs.next.data as Mal.Listlike;
+        var function = args[0];
+        var list = args[1] as Mal.Listlike;
         if (list == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected a list", name());
         var result = new Mal.List.empty();
         for (var iter = list.iter(); iter.nonempty(); iter.step()) {
-            var fnargs = new GLib.List<Mal.Val>();
-            fnargs.append(iter.deref());
+            Mal.Val fnargs[1] = { iter.deref() };
             result.vs.append(call_function(function, fnargs, name()));
         }
         return result;
@@ -784,9 +797,9 @@ class Mal.BuiltinFunctionSymbol : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionSymbol();
     }
     public override string name() { return "symbol"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var s = args.vs.data as Mal.String;
+        var s = args[0] as Mal.String;
         if (s == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected a string", name());
         return new Mal.Sym(s.v);
@@ -798,11 +811,11 @@ class Mal.BuiltinFunctionKeyword : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionKeyword();
     }
     public override string name() { return "keyword"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        if (args.vs.data is Mal.Keyword)
-            return args.vs.data;
-        var arg1 = args.vs.data as Mal.String;
+        if (args[0] is Mal.Keyword)
+            return args[0];
+        var arg1 = args[0] as Mal.String;
         if (arg1 == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected one string", name());
         return new Mal.Keyword(arg1.v);
@@ -814,25 +827,23 @@ class Mal.BuiltinFunctionAssoc : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionAssoc();
     }
     public override string name() { return "assoc"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        var iter = args.iter();
-        var oldmap = iter.deref() as Mal.Hashmap;
-        if (iter.deref() is Mal.Nil)
-            oldmap = new Mal.Hashmap();
-        if (oldmap == null)
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        if (args.length % 2 == 0)
+            throw new Mal.Error.BAD_PARAMS(
+                "%s: expected an even number of arguments", name());
+
+        var map = new Mal.Hashmap();
+        var oldmap = args[0] as Mal.Hashmap;
+        if (oldmap != null)
+            foreach (var key in oldmap.vs.get_keys())
+                map.insert(key, oldmap.vs[key]);
+        else if (!(args[0] is Mal.Nil))
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a hash-map to modify", name());
 
-        var map = new Mal.Hashmap();
-        foreach (var key in oldmap.vs.get_keys())
-            map.insert(key, oldmap.vs[key]);
-
-        for (iter.step(); iter.nonempty(); iter.step()) {
-            var key = iter.deref();
-            var value = iter.step().deref();
-            if (value == null)
-                throw new Mal.Error.BAD_PARAMS(
-                    "%s: expected an even number of arguments", name());
+        for (var i = 1; i < args.length; i += 2) {
+            var key = args[i];
+            var value = args[i+1];
             map.insert(key, value);
         }
         return map;
@@ -844,24 +855,22 @@ class Mal.BuiltinFunctionDissoc : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionDissoc();
     }
     public override string name() { return "dissoc"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() == 0)
-            throw new Mal.Error.BAD_PARAMS(
-                "%s: expected a hash-map to modify", name());
-        var iter = args.iter();
-        var oldmap = iter.deref() as Mal.Hashmap;
-        if (iter.deref() is Mal.Nil)
-            oldmap = new Mal.Hashmap();
-        if (oldmap == null)
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        if (args.length == 0)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a hash-map to modify", name());
 
         var map = new Mal.Hashmap();
-        foreach (var key in oldmap.vs.get_keys())
-            map.insert(key, oldmap.vs[key]);
+        var oldmap = args[0] as Mal.Hashmap;
+        if (oldmap != null)
+            foreach (var key in oldmap.vs.get_keys())
+                map.insert(key, oldmap.vs[key]);
+        else if (!(args[0] is Mal.Nil))
+            throw new Mal.Error.BAD_PARAMS(
+                "%s: expected a hash-map to modify", name());
 
-        for (iter.step(); iter.nonempty(); iter.step()) {
-            var key = iter.deref();
+        for (var i = 1; i < args.length; ++i) {
+            var key = args[i];
             map.remove(key);
         }
         return map;
@@ -877,15 +886,15 @@ class Mal.BuiltinFunctionGetFn : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionGetFn();
     }
     public override string name() { return "get"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        if (args.vs.data is Mal.Nil)
+        if (args[0] is Mal.Nil)
             return new Mal.Nil();
-        var map = args.vs.data as Mal.Hashmap;
+        var map = args[0] as Mal.Hashmap;
         if (map == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a hash-map to query", name());
-        var key = args.vs.next.data as Mal.Hashable;
+        var key = args[1] as Mal.Hashable;
         if (key == null)
             throw new Mal.Error.HASH_KEY_TYPE_ERROR(
                 "%s: bad type as hash key", name());
@@ -899,15 +908,15 @@ class Mal.BuiltinFunctionContains : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionContains();
     }
     public override string name() { return "contains?"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        if (args.vs.data is Mal.Nil)
+        if (args[0] is Mal.Nil)
             return new Mal.Bool(false);
-        var map = args.vs.data as Mal.Hashmap;
+        var map = args[0] as Mal.Hashmap;
         if (map == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a hash-map to query", name());
-        var key = args.vs.next.data as Mal.Hashable;
+        var key = args[1] as Mal.Hashable;
         if (key == null)
             throw new Mal.Error.HASH_KEY_TYPE_ERROR(
                 "%s: bad type as hash key", name());
@@ -921,12 +930,12 @@ class Mal.BuiltinFunctionKeys : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionKeys();
     }
     public override string name() { return "keys"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
         var keys = new Mal.List.empty();
-        if (args.vs.data is Mal.Nil)
+        if (args[0] is Mal.Nil)
             return keys;
-        var map = args.vs.data as Mal.Hashmap;
+        var map = args[0] as Mal.Hashmap;
         if (map == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a hash-map to query", name());
@@ -941,12 +950,12 @@ class Mal.BuiltinFunctionVals : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionVals();
     }
     public override string name() { return "vals"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
         var vals = new Mal.List.empty();
-        if (args.vs.data is Mal.Nil)
+        if (args[0] is Mal.Nil)
             return vals;
-        var map = args.vs.data as Mal.Hashmap;
+        var map = args[0] as Mal.Hashmap;
         if (map == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a hash-map to query", name());
@@ -961,14 +970,14 @@ class Mal.BuiltinFunctionReadline : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionReadline();
     }
     public override string name() { return "readline"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
         string prompt = "";
-        var arg1 = args.vs.data as Mal.String;
+        var arg1 = args[0] as Mal.String;
         if (arg1 != null)
             prompt = arg1.v;
         else if (!(arg1 is Mal.Nil))
-            throw new Mal.Error.BAD_PARAMS(
+          throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a string prompt", name());
         string? line = Readline.readline(prompt);
         if (line == null)
@@ -982,9 +991,9 @@ class Mal.BuiltinFunctionMeta : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionMeta();
     }
     public override string name() { return "meta"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        var vwm = args.vs.data as Mal.ValWithMetadata;
+        var vwm = args[0] as Mal.ValWithMetadata;
         if (vwm == null || vwm.metadata == null)
             return new Mal.Nil();
         return vwm.metadata;
@@ -996,14 +1005,14 @@ class Mal.BuiltinFunctionWithMeta : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionWithMeta();
     }
     public override string name() { return "with-meta"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(2, args);
-        var vwm = args.vs.data as Mal.ValWithMetadata;
+        var vwm = args[0] as Mal.ValWithMetadata;
         if (vwm == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: bad type for with-meta", name());
         var copied = vwm.copy();
-        copied.metadata = args.vs.next.data;
+        copied.metadata = args[1];
         return copied;
     }
 }
@@ -1013,7 +1022,7 @@ class Mal.BuiltinFunctionTimeMs : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionTimeMs();
     }
     public override string name() { return "time-ms"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(0, args);
         return new Mal.Num(GLib.get_real_time() / 1000);
     }
@@ -1024,27 +1033,27 @@ class Mal.BuiltinFunctionConj : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionConj();
     }
     public override string name() { return "conj"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() == 0)
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        if (args.length == 0)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected a collection to modify", name());
-        var oldvec = args.vs.data as Mal.Vector;
+        var oldvec = args[0] as Mal.Vector;
         if (oldvec != null) {
-            var n = args.vs.length() - 1;
+            var n = args.length - 1;
             var newvec = new Mal.Vector.with_size(oldvec.length + n);
             int i;
             for (i = 0; i < oldvec.length; i++)
                 newvec[i] = oldvec[i];
-            foreach (var x in args.vs.next)
-                newvec[i++] = x;
+            for (var j = 1; j < args.length; ++j)
+                newvec[i++] = args[j];
             return newvec;
         }
-        var oldlist = args.vs.data as Mal.List;
+        var oldlist = args[0] as Mal.List;
         if (oldlist != null) {
             var newlist = new Mal.List.empty();
             newlist.vs = oldlist.vs.copy();
-            foreach (var x in args.vs.next)
-                newlist.vs.prepend(x);
+            for (uint j = 1; j < args.length; ++j)
+                newlist.vs.prepend(args[j]);
             return newlist;
         }
         throw new Mal.Error.BAD_PARAMS(
@@ -1057,12 +1066,12 @@ class Mal.BuiltinFunctionSeq : Mal.BuiltinFunction {
         return new Mal.BuiltinFunctionSeq();
     }
     public override string name() { return "seq"; }
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
         check_arg_count(1, args);
-        Mal.List toret = args.vs.data as Mal.List;
+        Mal.List toret = args[0] as Mal.List;
         if (toret == null) {
             toret = new Mal.List.empty();
-            var s = args.vs.data as Mal.String;
+            var s = args[0] as Mal.String;
             if (s != null) {
                 var str = s.v;
                 if (str.length != 0) {
@@ -1076,7 +1085,7 @@ class Mal.BuiltinFunctionSeq : Mal.BuiltinFunction {
                     }
                 }
             } else {
-            var collection = args.vs.data as Mal.Listlike;
+            var collection = args[0] as Mal.Listlike;
             if (collection != null) {
                 for (var iter = collection.iter(); iter.nonempty(); iter.step())
                     toret.vs.append(iter.deref());

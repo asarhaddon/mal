@@ -222,9 +222,9 @@ class Mal.Hashmap : Mal.ValWithMetadata {
 
 abstract class Mal.BuiltinFunction : Mal.ValWithMetadata {
     public abstract string name();
-    public abstract Mal.Val call(Mal.List args) throws Mal.Error;
-    public void check_arg_count(uint expected, Mal.List got) throws Mal.Error {
-        if (got.vs.length() != expected)
+    public abstract Mal.Val call(Mal.Val[] args) throws Mal.Error;
+    public void check_arg_count(uint expected, Mal.Val[] got) throws Mal.Error {
+        if (got.length != expected)
             throw new Mal.Error.BAD_PARAMS
                 ("%s: expected %u argument(s), got: '%s'",
                  name(), expected, pr_list(got, true, " "));
