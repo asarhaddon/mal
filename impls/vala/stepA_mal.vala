@@ -163,28 +163,29 @@ class Mal.Main : GLib.Object {
             var ast_as_list = ast as Mal.List;
             if (ast_as_list != null) {
                 unowned var list = ast_as_list.vs;
-                if (list.first() == null)
+                if (list == null)
                     return ast;
 
-                var first = list.first().data;
+                var first = list.data;
+                list = list.next;
+
                 var sym = first as Mal.Sym;
                 if (sym != null) {
                     switch (sym.v) {
                     case "def!":
-                        if (list.length() != 3)
+                        if (list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(
                                 "def!: expected two values");
-                        return define_eval(list.next.data, list.next.next.data,
-                                           env, "def!");
+                        return define_eval(list.data, list.next.data, env, "def!");
                     case "defmacro!":
-                        if (list.length() != 3)
+                        if (list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(
                                 "defmacro!: expected two values");
-                        var symkey = list.next.data as Mal.Sym;
+                        var symkey = list.data as Mal.Sym;
                         if (symkey == null)
                             throw new Mal.Error.BAD_PARAMS(
                                 "defmacro!: expects a symbol");
-                        var val = EVAL(list.next.next.data, env) as Mal.Function;
+                        var val = EVAL(list.next.data, env) as Mal.Function;
                         if (val == null)
                             throw new Mal.Error.BAD_PARAMS(
                                 "defmacro!: expected a function");
@@ -193,10 +194,10 @@ class Mal.Main : GLib.Object {
                         env.set(symkey.v, val);
                         return val;
                     case "let*":
-                        if (list.length() != 3)
+                        if (list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(
                                 "let*: expected two values");
-                        var defns = list.nth(1).data as Mal.Listlike;
+                        var defns = list.data as Mal.Listlike;
                         env = new Mal.Env.within(env);
 
                         if (defns != null) {
@@ -212,21 +213,22 @@ class Mal.Main : GLib.Object {
                             throw new Mal.Error.BAD_PARAMS(
                                 "let*: expected a list or vector of definitions");
                         }
-                        ast = list.nth(2).data;
+                        ast = list.next.data;
                         continue;      // tail-call optimisation
                     case "do":
-                        Mal.Val result = null;
-                        for (list = list.next; list != null; list = list.next)
-                            result = EVAL(list.data, env);
-                        if (result == null)
+                        if (list == null)
                             throw new Mal.Error.BAD_PARAMS(
                                 "do: expected at least one argument");
-                        return result;
+                        while(list.next != null) {
+                            EVAL(list.data, env);
+                            list = list.next;
+                        }
+                        ast = list.data;
+                        continue; // tail-call optimization
                     case "if":
-                        if (list.length() != 3 && list.length() != 4)
+                        if (list.length() != 2 && list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
                                 "if: expected two or three arguments");
-                        list = list.next;
                         var cond = EVAL(list.data, env);
                         list = list.next;
                         if (!cond.truth_value()) {
@@ -238,14 +240,14 @@ class Mal.Main : GLib.Object {
                         ast = list.data;
                         continue;      // tail-call optimisation
                     case "fn*":
-                        if (list.length() != 3)
+                        if (list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(
                                 "fn*: expected two arguments");
-                        var body = list.next.next.data;
+                        var body = list.next.data;
                         Mal.Iterator iter;
                         string[] binds_s;
-                        var binds_lst = list.next.data as Mal.List;
-                        var binds_vec = list.next.data as Mal.Vector;
+                        var binds_lst = list.data as Mal.List;
+                        var binds_vec = list.data as Mal.Vector;
                         if (binds_lst != null) {
                             binds_s = new string[binds_lst.vs.length()];
                             iter = binds_lst.iter();
@@ -266,27 +268,27 @@ class Mal.Main : GLib.Object {
                         }
                         return new Mal.Function(binds_s, body, env);
                     case "quote":
-                        if (list.length() != 2)
+                        if (list.length() != 1)
                             throw new Mal.Error.BAD_PARAMS(
                                 "quote: expected one argument");
-                        return list.next.data;
+                        return list.data;
                     case "quasiquote":
-                        if (list.length() != 2)
+                        if (list.length() != 1)
                             throw new Mal.Error.BAD_PARAMS(
                                 "quasiquote: expected one argument");
-                        ast = quasiquote(list.next.data);
+                        ast = quasiquote(list.data);
                         continue;      // tail-call optimisation
                     case "try*":
-                        if (list.length() != 2 && list.length() != 3)
+                        if (list.length() != 1 && list.length() != 2)
                             throw new Mal.Error.BAD_PARAMS(
                                 "try*: expected one or two arguments");
-                        var trybody = list.next.data;
-                        if (list.length() == 2) {
+                        var trybody = list.data;
+                        if (list.length() == 1) {
                             // Trivial catchless form of try
                             ast = trybody;
                             continue;  // tail-call optimisation
                         }
-                        var catchclause = list.next.next.data as Mal.List;
+                        var catchclause = list.next.data as Mal.List;
                         var catch_as_sym = catchclause.vs.data as Mal.Sym;
                         if (catch_as_sym == null || catch_as_sym.v != "catch*")
                             throw new Mal.Error.BAD_PARAMS(
@@ -312,27 +314,25 @@ class Mal.Main : GLib.Object {
                     }
                 }
 
-                Mal.Val firstdata = EVAL(list.first().data, env);
+                Mal.Val firstdata = EVAL(first, env);
                 var newlist = new Mal.List.empty();
-                var iter = ast_as_list.iter().step();
 
                 var bf = firstdata as Mal.BuiltinFunction;
                 if (bf != null) {
-                    for (; iter.nonempty(); iter.step())
-                        newlist.vs.append(EVAL(iter.deref(), env));
+                    foreach (var x in list)
+                        newlist.vs.append(EVAL(x, env));
                     return bf.call(newlist);
                 }
                 var fn = firstdata as Mal.Function;
                 if (fn != null) {
                     if (fn.is_macro) {
-                        for (; iter.nonempty(); iter.step())
-                            newlist.vs.append(iter.deref());
+                        newlist.vs = list.copy();
                         var fenv = new Mal.Env.funcall(fn.env, fn.parameters, newlist);
                         ast = EVAL(fn.body, fenv);
                         continue;
                     }
-                    for (; iter.nonempty(); iter.step())
-                        newlist.vs.append(EVAL(iter.deref(), env));
+                    foreach (var x in list)
+                        newlist.vs.append(EVAL(x, env));
                     env = new Mal.Env.funcall(fn.env, fn.parameters, newlist);
                     ast = fn.body;
                     continue;      // tail-call optimisation
