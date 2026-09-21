@@ -22,6 +22,17 @@ class Mal.Main : GLib.Object {
         eof = false;
     }
 
+    public static void check_args(string name, uint expected,
+                                  GLib.List<weak Mal.Val> got) throws Mal.Error {
+        if (got.length() != expected) {
+            string s = "";
+            foreach (var x in got)
+                s += " " + pr_str(x, true);
+            throw new Mal.Error.BAD_PARAMS("%s: expected %u argument(s), got:%s",
+                                           name, expected, s);
+        }
+    }
+
     public static Mal.Val? READ() {
         string? line = Readline.readline("user> ");
         if (line != null) {
@@ -63,8 +74,7 @@ class Mal.Main : GLib.Object {
         if (list == null || list.vs == null) return null;
         var a0 = list.vs.data as Mal.Sym;
         if (a0 == null || a0.v != sym) return null;
-        if (list.vs.next == null || list.vs.next.next != null)
-            throw new Mal.Error.BAD_PARAMS(sym + ": wrong arg count");
+        check_args(sym, 1, list.vs.next);
         return list.vs.next.data;
     }
 
@@ -173,14 +183,10 @@ class Mal.Main : GLib.Object {
                 if (sym != null) {
                     switch (sym.v) {
                     case "def!":
-                        if (list.length() != 2)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "def!: expected two values");
+                        check_args("def!", 2, list);
                         return define_eval(list.data, list.next.data, env, "def!");
                     case "defmacro!":
-                        if (list.length() != 2)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "defmacro!: expected two values");
+                        check_args("defmacro!", 2, list);
                         var symkey = list.data as Mal.Sym;
                         if (symkey == null)
                             throw new Mal.Error.BAD_PARAMS(
@@ -194,9 +200,7 @@ class Mal.Main : GLib.Object {
                         env.set(symkey.v, val);
                         return val;
                     case "let*":
-                        if (list.length() != 2)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "let*: expected two values");
+                        check_args("let*", 2, list);
                         var defns = list.data as Mal.Listlike;
                         env = new Mal.Env.within(env);
 
@@ -240,9 +244,7 @@ class Mal.Main : GLib.Object {
                         ast = list.data;
                         continue;      // tail-call optimisation
                     case "fn*":
-                        if (list.length() != 2)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "fn*: expected two arguments");
+                        check_args("fn*", 2, list);
                         var body = list.next.data;
                         Mal.Iterator iter;
                         string[] binds_s;
@@ -268,14 +270,10 @@ class Mal.Main : GLib.Object {
                         }
                         return new Mal.Function(binds_s, body, env);
                     case "quote":
-                        if (list.length() != 1)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "quote: expected one argument");
+                        check_args("quote", 1, list);
                         return list.data;
                     case "quasiquote":
-                        if (list.length() != 1)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "quasiquote: expected one argument");
+                        check_args("quasiquote", 1, list);
                         ast = quasiquote(list.data);
                         continue;      // tail-call optimisation
                     case "try*":
@@ -293,9 +291,7 @@ class Mal.Main : GLib.Object {
                         if (catch_as_sym == null || catch_as_sym.v != "catch*")
                             throw new Mal.Error.BAD_PARAMS(
                                 "try*: expected catch*");
-                        if (catchclause.vs.length() != 3)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "catch*: expected two arguments");
+                        check_args("catch*", 2, catchclause.vs.next);
                         var catchparam = catchclause.vs.next.data as Mal.Sym;
                         if (catchparam == null)
                             throw new Mal.Error.BAD_PARAMS(
