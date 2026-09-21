@@ -6,7 +6,6 @@ public errordomain Mal.Error {
     BAD_PARAMS,
     CANNOT_APPLY,
     EXCEPTION_THROWN,
-    NOT_IMPLEMENTED_IN_THIS_STEP,
 }
 
 abstract class Mal.Val : GC.Object {
@@ -251,8 +250,8 @@ class Mal.Function : Mal.ValWithMetadata {
         copied.is_macro = is_macro;
         return copied;
 #else
-        throw new Mal.Error.NOT_IMPLEMENTED_IN_THIS_STEP(
-            "can't copy a Mal.Function without Mal.Env existing");
+        assert(false);
+        return new Mal.Nil(); // Silent a warning
 #endif
     }
     public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
