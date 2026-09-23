@@ -1,20 +1,3 @@
-class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
-    public weak Mal.Env env;
-    public BuiltinFunctionEval(Mal.Env env_) { env = env_; }
-    public override Mal.ValWithMetadata copy() {
-        return new Mal.BuiltinFunctionEval(env);
-    }
-    public override string name() { return "eval"; }
-    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
-        check_arg_count(1, args);
-        return Mal.Main.EVAL(args[0], env);
-    }
-    public override void gc_traverse() {
-        base.gc_traverse();
-        env.visit();
-    }
-}
-
 class Mal.Main : GLib.Object {
     static bool eof;
 
@@ -42,8 +25,7 @@ class Mal.Main : GLib.Object {
             try {
                 return Reader.read_str(line);
             } catch (Mal.Error err) {
-                Mal.BuiltinFunctionThrow.clear();
-                GLib.stderr.printf("%s\n", err.message);
+                GLib.stderr.printf("%s\n", pr_str(Core.thrown_value(err)));
                 return null;
             }
         } else {
@@ -301,7 +283,7 @@ class Mal.Main : GLib.Object {
                             return EVAL(trybody, env);
                         } catch (Mal.Error exc) {
                             var catchenv = new Mal.Env.within(env);
-                            catchenv.set(catchparam.v, Mal.BuiltinFunctionThrow.
+                            catchenv.set(catchparam.v, Core.
                                          thrown_value(exc));
                             ast = catchbody;
                             env = catchenv;
@@ -318,7 +300,7 @@ class Mal.Main : GLib.Object {
                     uint i = 0;
                     foreach (var x in list)
                         newlist[i++] = EVAL(x, env);
-                    return bf.call(newlist);
+                    return bf.call(newlist, bf.name);
                 }
                 var fn = firstdata as Mal.Function;
                 if (fn != null) {
@@ -363,7 +345,7 @@ class Mal.Main : GLib.Object {
             EVAL(Reader.read_str(line), env);
         } catch (Mal.Error err) {
             stderr.printf("Error during setup:\n%s\n-> %s\n",
-                          line, err.message);
+                          line, pr_str(Core.thrown_value(err)));
             GLib.Process.exit(1);
         }
     }
@@ -372,7 +354,13 @@ class Mal.Main : GLib.Object {
         var env = new Mal.Env();
 
         Mal.Core.make_ns(env);
-        env.set("eval", new Mal.BuiltinFunctionEval(env));
+
+        // This captures env, but env is always deallocated last.
+        env.set("eval", new Mal.BuiltinFunction(
+            (args, name) => {
+                BuiltinFunction.check_arg_count(1, args, name);
+                return Mal.Main.EVAL(args[0], env); }, "eval"));
+
         env.set("*host-language*", new Mal.String("vala"));
 
         setup("(def! not (fn* (a) (if a false true)))", env);
@@ -392,12 +380,10 @@ class Mal.Main : GLib.Object {
             while (!eof) {
                 try {
                     rep(env);
-                } catch (Mal.Error.EXCEPTION_THROWN exc) {
+                } catch (Mal.Error exc) {
                     GLib.stderr.printf(
                         "uncaught exception: %s\n",
-                        pr_str(Mal.BuiltinFunctionThrow.thrown_value(exc)));
-                } catch (Mal.Error err) {
-                    GLib.stderr.printf("%s\n", err.message);
+                        pr_str(Core.thrown_value(exc)));
                 }
             }
         }

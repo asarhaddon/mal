@@ -172,7 +172,7 @@ class Mal.Main : GLib.Object {
                     uint i = 0;
                     foreach (var x in list)
                         newlist[i++] = EVAL(x, env);
-                    return bf.call(newlist);
+                    return bf.call(newlist, bf.name);
                 }
                 var fn = firstdata as Mal.Function;
                 if (fn != null) {
@@ -223,7 +223,9 @@ class Mal.Main : GLib.Object {
             try {
                 rep(env);
             } catch (Mal.Error err) {
-                GLib.stderr.printf("%s\n", err.message);
+                GLib.stderr.printf(
+                    "uncaught exception: %s\n",
+                    err.message);
             }
         }
 

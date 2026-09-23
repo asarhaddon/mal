@@ -32,7 +32,7 @@ class Mal.Main : GLib.Object {
         stdout.printf("%s\n", pr_str(value));
     }
 
-    public static void rep() {
+    public static void rep() throws Mal.Error {
         Mal.Val? val = READ();
         if (val != null) {
             val = EVAL(val);
@@ -43,7 +43,13 @@ class Mal.Main : GLib.Object {
 
     public static int main(string[] args) {
         while (!eof) {
+            try {
                 rep();
+            } catch (Mal.Error err) {
+                GLib.stderr.printf(
+                    "uncaught exception: %s\n",
+                    err.message);
+            }
         }
 
 #if GC_STATS

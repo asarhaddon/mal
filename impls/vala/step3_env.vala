@@ -1,45 +1,29 @@
-abstract class Mal.BuiltinFunctionDyadicArithmetic : Mal.BuiltinFunction {
-    public abstract int64 result(int64 a, int64 b);
-    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
-        check_arg_count(2, args);
+delegate int64 DyadicArithmetic(int64 a, int64 b);
+static Mal.Val arithmetic2(Mal.Val[] args, string name,
+                                   DyadicArithmetic result)
+  throws Mal.Error {
+        Mal.BuiltinFunction.check_arg_count(2, args, name);
         Mal.Num a = args[0] as Mal.Num;
         Mal.Num b = args[1] as Mal.Num;
         if (a == null || b == null)
-            throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name());
+            throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name);
         return new Mal.Num(result(a.v, b.v));
-    }
 }
 
-class Mal.BuiltinFunctionAdd : Mal.BuiltinFunctionDyadicArithmetic {
-    public override Mal.ValWithMetadata copy() {
-        return new Mal.BuiltinFunctionAdd();
-    }
-    public override string name() { return "+"; }
-    public override int64 result(int64 a, int64 b) { return a+b; }
+static Mal.Val Add(Mal.Val[] args, string name) throws Mal.Error {
+    return arithmetic2(args, name, (a, b) => { return a+b; });
 }
 
-class Mal.BuiltinFunctionSub : Mal.BuiltinFunctionDyadicArithmetic {
-    public override Mal.ValWithMetadata copy() {
-        return new Mal.BuiltinFunctionSub();
-    }
-    public override string name() { return "-"; }
-    public override int64 result(int64 a, int64 b) { return a-b; }
+static Mal.Val Sub(Mal.Val[] args, string name) throws Mal.Error {
+    return arithmetic2(args, name, (a, b) => { return a-b; });
 }
 
-class Mal.BuiltinFunctionMul : Mal.BuiltinFunctionDyadicArithmetic {
-    public override Mal.ValWithMetadata copy() {
-        return new Mal.BuiltinFunctionMul();
-    }
-    public override string name() { return "*"; }
-    public override int64 result(int64 a, int64 b) { return a*b; }
+static Mal.Val Mul(Mal.Val[] args, string name) throws Mal.Error {
+    return arithmetic2(args, name, (a, b) => { return a*b; });
 }
 
-class Mal.BuiltinFunctionDiv : Mal.BuiltinFunctionDyadicArithmetic {
-    public override Mal.ValWithMetadata copy() {
-        return new Mal.BuiltinFunctionDiv();
-    }
-    public override string name() { return "/"; }
-    public override int64 result(int64 a, int64 b) { return a/b; }
+static Mal.Val Div(Mal.Val[] args, string name) throws Mal.Error {
+    return arithmetic2(args, name, (a, b) => { return a/b; });
 }
 
 class Mal.Main : GLib.Object {
@@ -168,7 +152,7 @@ class Mal.Main : GLib.Object {
                     uint i = 0;
                     foreach (var x in list)
                         newlist[i++] = EVAL(x, env);
-                    return bf.call(newlist);
+                    return bf.call(newlist, bf.name);
                 } else {
                     throw new Mal.Error.CANNOT_APPLY(
                         "bad value at start of list");
@@ -193,16 +177,18 @@ class Mal.Main : GLib.Object {
     public static int main(string[] args) {
         var env = new Mal.Env();
 
-        env.set("+", new BuiltinFunctionAdd());
-        env.set("-", new BuiltinFunctionSub());
-        env.set("*", new BuiltinFunctionMul());
-        env.set("/", new BuiltinFunctionDiv());
+        env.set("+", new BuiltinFunction(Add, "+"));
+        env.set("-", new BuiltinFunction(Sub, "-"));
+        env.set("*", new BuiltinFunction(Mul, "*"));
+        env.set("/", new BuiltinFunction(Div, "/"));
 
         while (!eof) {
             try {
                 rep(env);
             } catch (Mal.Error err) {
-                GLib.stderr.printf("%s\n", err.message);
+                GLib.stderr.printf(
+                    "uncaught exception: %s\n",
+                    err.message);
             }
         }
 

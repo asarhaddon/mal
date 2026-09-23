@@ -224,14 +224,23 @@ class Mal.Hashmap : Mal.ValWithMetadata {
     }
 }
 
-abstract class Mal.BuiltinFunction : Mal.ValWithMetadata {
-    public abstract string name();
-    public abstract Mal.Val call(Mal.Val[] args) throws Mal.Error;
-    public void check_arg_count(uint expected, Mal.Val[] got) throws Mal.Error {
+class Mal.BuiltinFunction : Mal.ValWithMetadata {
+    public string name;
+    public delegate Mal.Val CallFunc(Mal.Val[] args, string name) throws Mal.Error;
+    public unowned CallFunc call;
+    public BuiltinFunction(CallFunc call_, string name_) {
+        call = call_;
+        name = name_;
+    }
+    public override Mal.ValWithMetadata copy() {
+        return new BuiltinFunction(call, name);
+    }
+    public static void check_arg_count(uint expected, Mal.Val[] got, string name)
+      throws Mal.Error {
         if (got.length != expected)
             throw new Mal.Error.BAD_PARAMS
                 ("%s: expected %u argument(s), got: '%s'",
-                 name(), expected, pr_list(got, true, " "));
+                 name, expected, pr_list(got, true, " "));
     }
 }
 

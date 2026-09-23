@@ -47,7 +47,7 @@ namespace Mal {
         }
         var bf = val as Mal.BuiltinFunction;
         if (bf != null) {
-            return "#<builtin:%s>".printf(bf.name());
+            return "#<builtin:%s>".printf(bf.name);
         }
         var mf = val as Mal.Function;
         if (mf != null) {

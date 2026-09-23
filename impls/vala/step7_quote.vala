@@ -1,20 +1,3 @@
-class Mal.BuiltinFunctionEval : Mal.BuiltinFunction {
-    public weak Mal.Env env;
-    public BuiltinFunctionEval(Mal.Env env_) { env = env_; }
-    public override Mal.ValWithMetadata copy() {
-        return new Mal.BuiltinFunctionEval(env);
-    }
-    public override string name() { return "eval"; }
-    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
-        check_arg_count(1, args);
-        return Mal.Main.EVAL(args[0], env);
-    }
-    public override void gc_traverse() {
-        base.gc_traverse();
-        env.visit();
-    }
-}
-
 class Mal.Main : GLib.Object {
     static bool eof;
 
@@ -272,7 +255,7 @@ class Mal.Main : GLib.Object {
                     uint i = 0;
                     foreach (var x in list)
                         newlist[i++] = EVAL(x, env);
-                    return bf.call(newlist);
+                    return bf.call(newlist, bf.name);
                 }
                 var fn = firstdata as Mal.Function;
                 if (fn != null) {
@@ -318,7 +301,12 @@ class Mal.Main : GLib.Object {
         var env = new Mal.Env();
 
         Mal.Core.make_ns(env);
-        env.set("eval", new Mal.BuiltinFunctionEval(env));
+
+        // This captures env, but env is always deallocated last.
+        env.set("eval", new Mal.BuiltinFunction(
+            (args, name) => {
+                BuiltinFunction.check_arg_count(1, args, name);
+                return Mal.Main.EVAL(args[0], env); }, "eval"));
 
         setup("(def! not (fn* (a) (if a false true)))", env);
         setup("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", env);
@@ -336,7 +324,9 @@ class Mal.Main : GLib.Object {
                 try {
                     rep(env);
                 } catch (Mal.Error err) {
-                    GLib.stderr.printf("%s\n", err.message);
+                    GLib.stderr.printf(
+                        "uncaught exception: %s\n",
+                        err.message);
                 }
             }
         }
