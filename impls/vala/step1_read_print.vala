@@ -42,8 +42,15 @@ class Mal.Main : GLib.Object {
     }
 
     public static int main(string[] args) {
-        while (!eof)
-            rep();
+        while (!eof) {
+                rep();
+        }
+
+#if GC_STATS
+        stdout.printf("The final object count should be 0\n.");
+        GC.Core.collect();
+#endif
+
         return 0;
     }
 }

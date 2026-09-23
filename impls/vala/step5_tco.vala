@@ -1,9 +1,19 @@
 class Mal.Main : GLib.Object {
     static bool eof;
-    static Mal.Sym dbgevalsym;
 
     static construct {
         eof = false;
+    }
+
+    public static void check_args(string name, uint expected,
+                                  GLib.List<weak Mal.Val> got) throws Mal.Error {
+        if (got.length() != expected) {
+            string s = "";
+            foreach (var x in got)
+                s += " " + pr_str(x, true);
+            throw new Mal.Error.BAD_PARAMS("%s: expected %u argument(s), got:%s",
+                                           name, expected, s);
+        }
     }
 
     public static Mal.Val? READ() {
@@ -26,16 +36,15 @@ class Mal.Main : GLib.Object {
     }
 
     private static Mal.Val define_eval(Mal.Val key, Mal.Val value,
-                                       Mal.Env env)
+                                       Mal.Env env,
+                                       string context)
     throws Mal.Error {
-        var rootk = new GC.Root(key); (void)rootk;
-        var roote = new GC.Root(env); (void)roote;
         var symkey = key as Mal.Sym;
         if (symkey == null)
             throw new Mal.Error.BAD_PARAMS(
-                "let*: expected a symbol to define");
+                "%s: expected a symbol to define", context);
         var val = EVAL(value, env);
-        env.set(symkey, val);
+        env.set(symkey.v, val);
         return val;
     }
 
@@ -48,101 +57,84 @@ class Mal.Main : GLib.Object {
         // into them don't immediately get garbage-collected.
         Mal.Val ast = ast_;
         Mal.Env env = env_;
-        var ast_root = new GC.Root(ast); (void)ast_root;
-        var env_root = new GC.Root(env); (void)env_root;
         while (true) {
-            ast_root.obj = ast;
-            env_root.obj = env;
             GC.Core.maybe_collect();
 
-            if (dbgevalsym == null)
-                dbgevalsym = new Mal.Sym("DEBUG-EVAL");
-            var dbgeval = env.get(dbgevalsym);
+            var dbgeval = env.get("DEBUG-EVAL");
             if (dbgeval != null && dbgeval.truth_value())
                 stdout.printf("EVAL: %s\n", pr_str(ast));
 
-            if (ast is Mal.Sym) {
-                var key = ast as Mal.Sym;
-                var val = env.get(key);
+            var key = ast as Mal.Sym;
+            if (key != null) {
+                var val = env.get(key.v);
                 if (val == null)
                     throw new Error.ENV_LOOKUP_FAILED("'%s' not found", key.v);
                 return val;
             }
-            if (ast is Mal.Vector) {
-                var vec = ast as Mal.Vector;
+            var vec = ast as Mal.Vector;
+            if (vec != null) {
                 var result = new Mal.Vector.with_size(vec.length);
-                var root = new GC.Root(result); (void)root;
                 for (var i = 0; i < vec.length; i++)
                     result[i] = EVAL(vec[i], env);
                 return result;
             }
-            if (ast is Mal.Hashmap) {
+            var ast_as_map = ast as Mal.Hashmap;
+            if (ast_as_map != null) {
                 var result = new Mal.Hashmap();
-                var root = new GC.Root(result); (void)root;
-                var map = (ast as Mal.Hashmap).vs;
-                foreach (var key in map.get_keys())
-                    result.insert(key, EVAL(map[key], env));
+                var map = ast_as_map.vs;
+                foreach (var k in map.get_keys())
+                    result.insert(k, EVAL(map[k], env));
                 return result;
             }
-            if (ast is Mal.List) {
-                unowned GLib.List<Mal.Val> list = (ast as Mal.List).vs;
-                if (list.first() == null)
+            var ast_as_list = ast as Mal.List;
+            if (ast_as_list != null) {
+                unowned var list = ast_as_list.vs;
+                if (list == null)
                     return ast;
 
-                var first = list.first().data;
-                if (first is Mal.Sym) {
-                    var sym = first as Mal.Sym;
+                var first = list.data;
+                list = list.next;
+
+                var sym = first as Mal.Sym;
+                if (sym != null) {
                     switch (sym.v) {
                     case "def!":
-                        if (list.length() != 3)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "def!: expected two values");
-                        return define_eval(list.next.data, list.next.next.data,
-                                           env);
+                        check_args("def!", 2, list);
+                        return define_eval(list.data, list.next.data, env, "def!");
                     case "let*":
-                        if (list.length() != 3)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "let*: expected two values");
-                        var defns = list.nth(1).data;
+                        check_args("let*", 2, list);
+                        var defns = list.data as Mal.Listlike;
                         env = new Mal.Env.within(env);
 
-                        if (defns is Mal.List) {
-                            for (unowned GLib.List<Mal.Val> iter =
-                                     (defns as Mal.List).vs;
-                                 iter != null; iter = iter.next.next) {
-                                if (iter.next == null)
+                        if (defns != null) {
+                            for (var i = defns.iter(); i.nonempty(); i.step()) {
+                                var k = i.deref();
+                                if (i.step().empty())
                                     throw new Mal.Error.BAD_PARAMS(
                                         "let*: expected an even-length list" +
                                         " of definitions");
-                                define_eval(iter.data, iter.next.data, env);
+                                define_eval(k, i.deref(), env, "let*");
                             }
-                        } else if (defns is Mal.Vector) {
-                            var vec = defns as Mal.Vector;
-                            if (vec.length % 2 != 0)
-                                throw new Mal.Error.BAD_PARAMS(
-                                    "let*: expected an even-length vector" +
-                                    " of definitions");
-                            for (var i = 0; i < vec.length; i += 2)
-                                define_eval(vec[i], vec[i+1], env);
                         } else {
                             throw new Mal.Error.BAD_PARAMS(
                                 "let*: expected a list or vector of definitions");
                         }
-                        ast = list.nth(2).data;
+                        ast = list.next.data;
                         continue;      // tail-call optimisation
                     case "do":
-                        Mal.Val result = null;
-                        for (list = list.next; list != null; list = list.next)
-                            result = EVAL(list.data, env);
-                        if (result == null)
+                        if (list == null)
                             throw new Mal.Error.BAD_PARAMS(
                                 "do: expected at least one argument");
-                        return result;
+                        while(list.next != null) {
+                            EVAL(list.data, env);
+                            list = list.next;
+                        }
+                        ast = list.data;
+                        continue; // tail-call optimization
                     case "if":
-                        if (list.length() != 3 && list.length() != 4)
+                        if (list.length() != 2 && list.length() != 3)
                             throw new Mal.Error.BAD_PARAMS(
                                 "if: expected two or three arguments");
-                        list = list.next;
                         var cond = EVAL(list.data, env);
                         list = list.next;
                         if (!cond.truth_value()) {
@@ -154,34 +146,49 @@ class Mal.Main : GLib.Object {
                         ast = list.data;
                         continue;      // tail-call optimisation
                     case "fn*":
-                        if (list.length() != 3)
-                            throw new Mal.Error.BAD_PARAMS(
-                                "fn*: expected two arguments");
-                        var binds = list.next.data as Mal.Listlike;
-                        var body = list.next.next.data;
-                        if (binds == null)
+                        check_args("fn*", 2, list);
+                        var body = list.next.data;
+                        Mal.Iterator iter;
+                        string[] binds_s;
+                        var binds_lst = list.data as Mal.List;
+                        var binds_vec = list.data as Mal.Vector;
+                        if (binds_lst != null) {
+                            binds_s = new string[binds_lst.vs.length()];
+                            iter = binds_lst.iter();
+                        } else if (binds_vec != null) {
+                            binds_s = new string[binds_vec.length];
+                            iter = binds_vec.iter();
+                        } else
                             throw new Mal.Error.BAD_PARAMS(
                                 "fn*: expected a list of parameter names");
-                        for (var iter = binds.iter(); iter.nonempty(); iter.step())
-                            if (!(iter.deref() is Mal.Sym))
+                        for (uint i = 0; i < binds_s.length;  ++i) {
+                            var s = iter.deref() as Mal.Sym;
+                            iter.step();
+                            if (s == null)
                                 throw new Mal.Error.BAD_PARAMS(
                                     "fn*: expected parameter name to be "+
                                     "symbol");
-                        return new Mal.Function(binds, body, env);
+                            binds_s[i] = s.v;
+                        }
+                        return new Mal.Function(binds_s, body, env);
                     }
                 }
 
-                Mal.Val firstdata = EVAL(list.first().data, env);
-                var newlist = new Mal.List.empty();
-                var root = new GC.Root(newlist); (void)root;
-                for (var iter = (ast as Mal.Listlike).iter().step();
-                     iter.nonempty(); iter.step())
-                    newlist.vs.append(EVAL(iter.deref(), env));
+                Mal.Val firstdata = EVAL(first, env);
+                var newlist = new Mal.Val[list.length()];
 
-                if (firstdata is Mal.BuiltinFunction) {
-                    return (firstdata as Mal.BuiltinFunction).call(newlist);
-                } else if (firstdata is Mal.Function) {
-                    var fn = firstdata as Mal.Function;
+                var bf = firstdata as Mal.BuiltinFunction;
+                if (bf != null) {
+                    uint i = 0;
+                    foreach (var x in list)
+                        newlist[i++] = EVAL(x, env);
+                    return bf.call(newlist);
+                }
+                var fn = firstdata as Mal.Function;
+                if (fn != null) {
+                    uint i = 0;
+                    foreach (var x in list)
+                        newlist[i++] = EVAL(x, env);
                     env = new Mal.Env.funcall(fn.env, fn.parameters, newlist);
                     ast = fn.body;
                     continue;      // tail-call optimisation
@@ -207,20 +214,22 @@ class Mal.Main : GLib.Object {
         }
     }
 
+    public static void setup(string line, Mal.Env env) {
+        try {
+            EVAL(Reader.read_str(line), env);
+        } catch (Mal.Error err) {
+            stderr.printf("Error during setup:\n%s\n-> %s\n",
+                          line, err.message);
+            GLib.Process.exit(1);
+        }
+    }
+
     public static int main(string[] args) {
         var env = new Mal.Env();
-        var root = new GC.Root(env); (void)root;
 
-        Mal.Core.make_ns();
-        foreach (var key in Mal.Core.ns.get_keys())
-            env.set(new Mal.Sym(key), Mal.Core.ns[key]);
+        Mal.Core.make_ns(env);
 
-        try {
-            EVAL(Mal.Reader.read_str("(def! not (fn* (a) (if a false true)))"),
-                 env);
-        } catch (Mal.Error err) {
-            assert(false); // shouldn't happen
-        }
+        setup("(def! not (fn* (a) (if a false true)))", env);
 
         while (!eof) {
             try {
@@ -229,6 +238,13 @@ class Mal.Main : GLib.Object {
                 GLib.stderr.printf("%s\n", err.message);
             }
         }
+
+#if GC_STATS
+        stdout.printf("The final object count should be 0\n.");
+        env = null;
+        GC.Core.collect();
+#endif
+
         return 0;
     }
 }

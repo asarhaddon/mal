@@ -1,10 +1,9 @@
 abstract class Mal.BuiltinFunctionDyadicArithmetic : Mal.BuiltinFunction {
     public abstract int64 result(int64 a, int64 b);
-    public override Mal.Val call(Mal.List args) throws Mal.Error {
-        if (args.vs.length() != 2)
-            throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name());
-        unowned Mal.Num a = args.vs.nth_data(0) as Mal.Num;
-        unowned Mal.Num b = args.vs.nth_data(1) as Mal.Num;
+    public override Mal.Val call(Mal.Val[] args) throws Mal.Error {
+        check_arg_count(2, args);
+        Mal.Num a = args[0] as Mal.Num;
+        Mal.Num b = args[1] as Mal.Num;
         if (a == null || b == null)
             throw new Mal.Error.BAD_PARAMS("%s: expected two numbers", name());
         return new Mal.Num(result(a.v, b.v));
@@ -43,25 +42,6 @@ class Mal.BuiltinFunctionDiv : Mal.BuiltinFunctionDyadicArithmetic {
     public override int64 result(int64 a, int64 b) { return a/b; }
 }
 
-class Mal.Env : GLib.Object {
-    public GLib.HashTable<Mal.Sym, Mal.Val> data;
-    construct {
-        data = new GLib.HashTable<Mal.Sym, Mal.Val>(
-            Mal.Hashable.hash, Mal.Hashable.equal);
-    }
-    // Use the 'new' keyword to silence warnings about 'set' and 'get'
-    // already having meanings that we're overwriting
-    public new void set(Mal.Sym key, Mal.Val f) {
-        data[key] = f;
-    }
-    public new Mal.Val get(Mal.Sym key) throws Mal.Error {
-        var toret = data[key];
-        if (toret == null)
-            throw new Error.ENV_LOOKUP_FAILED("no such variable '%s'", key.v);
-        return toret;
-    }
-}
-
 class Mal.Main : GLib.Object {
     static bool eof;
 
@@ -88,53 +68,67 @@ class Mal.Main : GLib.Object {
         }
     }
 
-    public static Mal.Val EVAL(Mal.Val ast, Mal.Env env)
+    public static Mal.Val EVAL(Mal.Val ast, GLib.HashTable<string, Mal.Val> env)
     throws Mal.Error {
-        var ast_root = new GC.Root(ast); (void)ast_root;
-        GC.Core.maybe_collect();
+
+            GC.Core.maybe_collect();
 
         //  stdout.printf("EVAL: %s\n", pr_str(ast));
 
-        if (ast is Mal.Sym)
-            return env.get(ast as Mal.Sym);
-        if (ast is Mal.Vector) {
+            var key = ast as Mal.Sym;
+            if (key != null) {
+                var val = env[key.v];
+                if (val == null)
+                    throw new Error.ENV_LOOKUP_FAILED("'%s' not found", key.v);
+                return val;
+            }
             var vec = ast as Mal.Vector;
-            var result = new Mal.Vector.with_size(vec.length);
-            var root = new GC.Root(result); (void)root;
-            for (var i = 0; i < vec.length; i++)
-                result[i] = EVAL(vec[i], env);
-            return result;
-        }
-        if (ast is Mal.Hashmap) {
-            var result = new Mal.Hashmap();
-            var root = new GC.Root(result); (void)root;
-            var map = (ast as Mal.Hashmap).vs;
-            foreach (var key in map.get_keys())
-                result.insert(key, EVAL(map[key], env));
-            return result;
-        }
-        if (ast is Mal.List) {
-            unowned GLib.List<Mal.Val> list = (ast as Mal.List).vs;
-            if (list.first() == null)
+            if (vec != null) {
+                var result = new Mal.Vector.with_size(vec.length);
+                for (var i = 0; i < vec.length; i++)
+                    result[i] = EVAL(vec[i], env);
+                return result;
+            }
+            var ast_as_map = ast as Mal.Hashmap;
+            if (ast_as_map != null) {
+                var result = new Mal.Hashmap();
+                var map = ast_as_map.vs;
+                foreach (var k in map.get_keys())
+                    result.insert(k, EVAL(map[k], env));
+                return result;
+            }
+            var ast_as_list = ast as Mal.List;
+            if (ast_as_list != null) {
+                unowned var list = ast_as_list.vs;
+                if (list == null)
+                    return ast;
+
+                var first = list.data;
+                list = list.next;
+
+                Mal.Val firstdata = EVAL(first, env);
+                var newlist = new Mal.Val[list.length()];
+
+                var bf = firstdata as Mal.BuiltinFunction;
+                if (bf != null) {
+                    uint i = 0;
+                    foreach (var x in list)
+                        newlist[i++] = EVAL(x, env);
+                    return bf.call(newlist);
+                } else {
+                    throw new Mal.Error.CANNOT_APPLY(
+                        "bad value at start of list");
+                }
+            } else {
                 return ast;
-
-            Mal.Val firstdata = EVAL(list.first().data, env);
-            var newlist = new Mal.List.empty();
-            var root = new GC.Root(newlist); (void)root;
-            for (var iter = (ast as Mal.Listlike).iter().step(); iter.nonempty(); iter.step())
-                newlist.vs.append(EVAL(iter.deref(), env));
-
-            return (firstdata as Mal.BuiltinFunction).call(newlist);
-        } else {
-            return ast;
-        }
+            }
     }
 
     public static void PRINT(Mal.Val value) {
         stdout.printf("%s\n", pr_str(value));
     }
 
-    public static void rep(Mal.Env env) throws Mal.Error {
+    public static void rep(GLib.HashTable<string, Mal.Val> env) throws Mal.Error {
         Mal.Val? val = READ();
         if (val != null) {
             val = EVAL(val, env);
@@ -143,12 +137,12 @@ class Mal.Main : GLib.Object {
     }
 
     public static int main(string[] args) {
-        var env = new Mal.Env();
+        var env = new GLib.HashTable<string, Mal.Val>(str_hash, str_equal);
 
-        env.set(new Mal.Sym("+"), new BuiltinFunctionAdd());
-        env.set(new Mal.Sym("-"), new BuiltinFunctionSub());
-        env.set(new Mal.Sym("*"), new BuiltinFunctionMul());
-        env.set(new Mal.Sym("/"), new BuiltinFunctionDiv());
+        env["+"] = new BuiltinFunctionAdd();
+        env["-"] = new BuiltinFunctionSub();
+        env["*"] = new BuiltinFunctionMul();
+        env["/"] = new BuiltinFunctionDiv();
 
         while (!eof) {
             try {
@@ -157,6 +151,13 @@ class Mal.Main : GLib.Object {
                 GLib.stderr.printf("%s\n", err.message);
             }
         }
+
+#if GC_STATS
+        stdout.printf("The final object count should be 0\n.");
+        env = null;
+        GC.Core.collect();
+#endif
+
         return 0;
     }
 }

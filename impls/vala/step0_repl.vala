@@ -1,13 +1,21 @@
 class Mal.Main : GLib.Object {
+    static bool eof;
+
+    static construct {
+        eof = false;
+    }
+
     public static string? READ() {
         string? line = Readline.readline("user> ");
         if (line != null) {
             if (line.length > 0)
                 Readline.History.add(line);
+            return line;
         } else {
             stdout.printf("\n");
+            eof = true;
+            return null;
         }
-        return line;
     }
 
     public static string EVAL(string expr) {
@@ -18,19 +26,19 @@ class Mal.Main : GLib.Object {
         stdout.printf("%s\n", value);
     }
 
-    public static bool rep() {
-        string? line = READ();
-        if (line == null)
-            return false;
-        if (line.length > 0) {
-            string value = EVAL(line);
-            PRINT(value);
+    public static void rep() {
+        string? val = READ();
+        if (val != null) {
+            val = EVAL(val);
+            PRINT(val);
         }
-        return true;
     }
 
     public static int main(string[] args) {
-        while (rep());
+        while (!eof) {
+            rep();
+        }
+
         return 0;
     }
 }
