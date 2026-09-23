@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:25.04
 
 ##########################################################
 # General requirements for testing or common across many
@@ -8,7 +8,7 @@ FROM ubuntu:18.04
 RUN apt-get -y update
 
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y install make python-is-python3
 
 # Some typical implementation and test requirements
 RUN apt-get -y install curl libreadline-dev libedit-dev
