@@ -1,6 +1,6 @@
 class Mal.Env : GC.Object {
     private GLib.HashTable<string, weak Mal.Val> data;
-    weak Mal.Env? outer;
+    private weak Mal.Env? outer;
 
     construct {
         data = new GLib.HashTable<string, weak Mal.Val>(
